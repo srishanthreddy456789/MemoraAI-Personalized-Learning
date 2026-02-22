@@ -1,0 +1,15 @@
+data:
+  raw_path: data/raw/training_data.csv
+  processed_path: data/processed
+
+features:
+  input_features:
+    - last_studied_days
+    - quiz_score
+    - revision_count
+  target: forgotten
+
+model:
+  type: logistic_regression
+  max_iter: 200
+  random_state: 42
