@@ -13,3 +13,7 @@ model:
   type: logistic_regression
   max_iter: 200
   random_state: 42
+
+
+mlflow:
+  experiment_name: memoryai_experiments
