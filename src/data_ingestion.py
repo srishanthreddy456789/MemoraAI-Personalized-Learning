@@ -15,31 +15,33 @@ formatter = logging.Formatter(
     "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
 
-file_handler = logging.FileHandler(os.path.join(LOG_DIR, "data_ingestion.log"))
-file_handler.setFormatter(formatter)
-
-console_handler = logging.StreamHandler()
-console_handler.setFormatter(formatter)
-
 if not logger.handlers:
+    file_handler = logging.FileHandler(os.path.join(LOG_DIR, "data_ingestion.log"))
+    file_handler.setFormatter(formatter)
+
+    console_handler = logging.StreamHandler()
+    console_handler.setFormatter(formatter)
+
     logger.addHandler(file_handler)
     logger.addHandler(console_handler)
 
 # ---------------- Core Logic ----------------
 def load_data() -> pd.DataFrame:
-    params = load_params()
-    path = params["data"]["raw_path"]
+    params = load_params("config/params.yaml")
+    path = params["data_ingestion"]["raw_data_path"]
+
     df = pd.read_csv(path)
-    logger.info("Loaded data from %s", path)
+    logger.info("Loaded raw data from %s", path)
     return df
 
 
 def split_and_save(df: pd.DataFrame):
-    params = load_params()
+    params = load_params("config/params.yaml")
 
-    test_size = params["data"]["test_size"]
-    random_state = params["data"]["random_state"]
-    out_dir = params["data"]["processed_path"]
+    cfg = params["data_ingestion"]
+    test_size = cfg["test_size"]
+    random_state = cfg["random_state"]
+    out_dir = cfg["processed_data_path"]
 
     os.makedirs(out_dir, exist_ok=True)
 
@@ -50,14 +52,14 @@ def split_and_save(df: pd.DataFrame):
     train_df.to_csv(os.path.join(out_dir, "train.csv"), index=False)
     test_df.to_csv(os.path.join(out_dir, "test.csv"), index=False)
 
-    logger.info("Train/Test data saved to %s", out_dir)
+    logger.info("Saved train.csv and test.csv to %s", out_dir)
 
 
 def main():
-    logger.info("🚀 Starting data ingestion")
+    logger.info("Starting data ingestion")
     df = load_data()
     split_and_save(df)
-    logger.info("✅ Data ingestion completed successfully")
+    logger.info("Data ingestion completed successfully")
 
 
 if __name__ == "__main__":
