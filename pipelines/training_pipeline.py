@@ -1,6 +1,11 @@
 import logging
 import os
+import sys
 import pandas as pd
+from sklearn.model_selection import train_test_split
+
+# ---------------- Path Fix ----------------
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from src.data_ingestion import load_params
 from src.data_preprocessing import preprocess
@@ -14,32 +19,49 @@ os.makedirs(LOG_DIR, exist_ok=True)
 logger = logging.getLogger("training_pipeline")
 logger.setLevel(logging.DEBUG)
 
-handler = logging.FileHandler(os.path.join(LOG_DIR, "training_pipeline.log"))
 formatter = logging.Formatter(
     "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
-handler.setFormatter(formatter)
-logger.addHandler(handler)
 
+if not logger.handlers:
+    file_handler = logging.FileHandler(
+        os.path.join(LOG_DIR, "training_pipeline.log")
+    )
+    file_handler.setFormatter(formatter)
+    logger.addHandler(file_handler)
 
+# ---------------- Pipeline ----------------
 def run_pipeline():
     try:
-        logger.info("🚀 Training pipeline started")
+        logger.info("Training pipeline started")
 
         params = load_params("config/params.yaml")
         processed_path = params["data_ingestion"]["processed_data_path"]
 
+        # Load processed data
         train_df = pd.read_csv(os.path.join(processed_path, "train.csv"))
 
+        # Preprocess
         train_df = preprocess(train_df)
+
+        # Features & target
         X, y = create_features(train_df)
 
-        train_model(X, y)
+        # Train-test split (model stage responsibility)
+        X_train, X_test, y_train, y_test = train_test_split(
+            X,
+            y,
+            test_size=params["data_ingestion"]["test_size"],
+            random_state=params["data_ingestion"]["random_state"],
+        )
 
-        logger.info("✅ Training pipeline completed successfully")
+        # Train model (MLflow logging inside)
+        train_model(X_train, y_train, X_test, y_test)
+
+        logger.info("Training pipeline completed successfully")
 
     except Exception as e:
-        logger.critical("❌ Training pipeline failed: %s", e)
+        logger.critical("Training pipeline failed: %s", e)
         raise
 
 
