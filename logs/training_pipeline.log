@@ -1,0 +1,8 @@
+2026-02-22 14:59:59,892 - training_pipeline - INFO - Training pipeline started
+2026-02-22 14:59:59,894 - training_pipeline - CRITICAL - Training pipeline failed: 'data_ingestion'
+2026-02-22 15:03:04,023 - training_pipeline - INFO - Training pipeline started
+2026-02-22 15:03:04,025 - training_pipeline - CRITICAL - Training pipeline failed: 'data_ingestion'
+2026-02-22 15:05:52,202 - training_pipeline - INFO - Training pipeline started
+2026-02-22 15:05:52,205 - training_pipeline - CRITICAL - Training pipeline failed: [Errno 2] No such file or directory: 'data/processed\\train.csv'
+2026-02-22 15:10:04,630 - training_pipeline - INFO - Training pipeline started
+2026-02-22 15:10:26,367 - training_pipeline - INFO - Training pipeline completed successfully

@@ -1,37 +1,39 @@
 import mlflow
 import mlflow.sklearn
-import yaml
-import logging
 from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import accuracy_score
+from src.utils import load_params
+import os
 
-logger = logging.getLogger("model_building")
-logger.setLevel(logging.DEBUG)
+def train_model(X_train, y_train, X_test, y_test):
+    params = load_params()
 
-def load_params(path="config/params.yaml"):
-    with open(path, "r") as f:
-        return yaml.safe_load(f)
+    model_params = params["model"]
+    experiment_name = params["mlflow"]["experiment_name"]
 
-def train_model(X, y):
-    try:
-        params = load_params()
+    mlflow.set_experiment(experiment_name)
 
-        mlflow.set_experiment(params["mlflow"]["experiment_name"])
+    with mlflow.start_run():
+        model = LogisticRegression(
+            max_iter=model_params["max_iter"],
+            random_state=model_params["random_state"]
+        )
 
-        with mlflow.start_run():
-            model = LogisticRegression(
-                max_iter=params["model"]["max_iter"],
-                random_state=params["model"]["random_state"]
-            )
+        model.fit(X_train, y_train)
 
-            model.fit(X, y)
-            acc = model.score(X, y)
+        preds = model.predict(X_test)
+        acc = accuracy_score(y_test, preds)
 
-            mlflow.log_metric("accuracy", acc)
-            mlflow.sklearn.log_model(model, "forgetting_model")
+        mlflow.log_param("model_type", "LogisticRegression")
+        mlflow.log_metric("accuracy", acc)
 
-            logger.debug("Model trained and logged to MLflow")
+        mlflow.sklearn.log_model(
+            model,
+            artifact_path="model",
+            registered_model_name="forgetting_model"
+        )
 
-        return model
-    except Exception as e:
-        logger.error("Model training failed: %s", e)
-        raise
+        os.makedirs("models", exist_ok=True)
+        mlflow.sklearn.save_model(model, "models/model")
+
+        return acc

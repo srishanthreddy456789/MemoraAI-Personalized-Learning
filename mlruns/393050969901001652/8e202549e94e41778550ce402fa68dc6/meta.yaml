@@ -1,0 +1,14 @@
+artifact_uri: file:///C:/Users/reddy/OneDrive/Desktop/memoryai/mlruns/393050969901001652/8e202549e94e41778550ce402fa68dc6/artifacts
+end_time: 1771753226364
+entry_point_name: ''
+experiment_id: '393050969901001652'
+lifecycle_stage: active
+run_id: 8e202549e94e41778550ce402fa68dc6
+run_name: wise-penguin-518
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1771753205178
+status: 3
+tags: []
+user_id: reddy

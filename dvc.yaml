@@ -1,13 +1,20 @@
 stages:
+  data_ingestion:
+    cmd: python src/data_ingestion.py
+    deps:
+      - src/data_ingestion.py
+      - config/params.yaml
+    outs:
+      - data/processed/train.csv
+      - data/processed/test.csv
+
   train:
     cmd: python pipelines/training_pipeline.py
     deps:
-      - data/raw/training_data.csv
-      - src/data_ingestion.py
+      - data/processed/train.csv
       - src/data_preprocessing.py
       - src/feature_engineering.py
       - src/model_building.py
-      - src/model_evaluation.py
       - pipelines/training_pipeline.py
       - config/params.yaml
     outs:

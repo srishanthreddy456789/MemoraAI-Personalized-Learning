@@ -1,0 +1,4 @@
+2026-02-22 15:09:59,820 - data_ingestion - INFO - Starting data ingestion
+2026-02-22 15:09:59,834 - data_ingestion - INFO - Loaded raw data from data/raw/training_data.csv
+2026-02-22 15:09:59,857 - data_ingestion - INFO - Saved train.csv and test.csv to data/processed
+2026-02-22 15:09:59,857 - data_ingestion - INFO - Data ingestion completed successfully

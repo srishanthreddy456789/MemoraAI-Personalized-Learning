@@ -27,11 +27,11 @@ params = load_params()
 # ---------------- Load Model from MLflow ----------------
 mlflow.set_experiment(params["mlflow"]["experiment_name"])
 
-MODEL_URI = "models:/forgetting_model/Production"
+MODEL_URI = "models:/forgetting_model@prod"
 
 try:
     model = mlflow.sklearn.load_model(MODEL_URI)
-    logger.info("✅ Model loaded from MLflow Registry")
+    logger.info("✅ Model loaded from MLflow Registry using alias 'prod'")
 except Exception as e:
     logger.error("❌ Failed to load model: %s", e)
     model = None
