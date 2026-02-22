@@ -7,7 +7,7 @@ from sklearn.model_selection import train_test_split
 # ---------------- Path Fix ----------------
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from src.data_ingestion import load_params
+from src.utils import load_params          # ✅ correct import
 from src.data_preprocessing import preprocess
 from src.feature_engineering import create_features
 from src.model_building import train_model
@@ -44,10 +44,16 @@ def run_pipeline():
         # Preprocess
         train_df = preprocess(train_df)
 
+        # ✅ ADD THIS (REQUIRED TARGET COLUMN)
+        train_df["forgotten"] = (train_df["quiz_score"] < 0.6).astype(int)
+
+        # (optional debug – remove later)
+        logger.debug("Columns before feature engineering: %s", train_df.columns.tolist())
+
         # Features & target
         X, y = create_features(train_df)
 
-        # Train-test split (model stage responsibility)
+        # Train-test split
         X_train, X_test, y_train, y_test = train_test_split(
             X,
             y,

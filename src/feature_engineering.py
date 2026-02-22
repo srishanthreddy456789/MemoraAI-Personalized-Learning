@@ -29,6 +29,11 @@ def create_features(df):
         feature_cols = params["features"]["input_features"]
         target_col = params["features"]["target"]
 
+        # ✅ THIS IS WHERE THE ERROR COMES FROM
+        missing = set(feature_cols + [target_col]) - set(df.columns)
+        if missing:
+            raise KeyError(f"Missing required columns: {missing}")
+
         X = df[feature_cols]
         y = df[target_col]
 

@@ -2,3 +2,20 @@
 2026-02-22 15:09:59,834 - data_ingestion - INFO - Loaded raw data from data/raw/training_data.csv
 2026-02-22 15:09:59,857 - data_ingestion - INFO - Saved train.csv and test.csv to data/processed
 2026-02-22 15:09:59,857 - data_ingestion - INFO - Data ingestion completed successfully
+2026-02-22 17:52:58,246 - data_ingestion - INFO - Starting data ingestion
+2026-02-22 17:54:46,565 - data_ingestion - INFO - Starting data ingestion
+2026-02-22 17:54:46,572 - data_ingestion - INFO - Loaded raw data from data/raw/training_data.csv
+2026-02-22 17:54:46,582 - data_ingestion - INFO - Saved train.csv and test.csv to data/processed
+2026-02-22 17:54:46,586 - data_ingestion - INFO - Data ingestion completed successfully
+2026-02-22 18:42:12,733 - data_ingestion - INFO - Starting data ingestion
+2026-02-22 18:42:12,745 - data_ingestion - INFO - Loaded raw data from data/raw/training_data.csv
+2026-02-22 18:42:12,759 - data_ingestion - INFO - Saved train.csv and test.csv to data/processed
+2026-02-22 18:42:12,759 - data_ingestion - INFO - Data ingestion completed successfully
+2026-02-22 18:52:44,832 - data_ingestion - INFO - Starting data ingestion
+2026-02-22 18:52:44,852 - data_ingestion - INFO - Loaded raw data from data/raw/training_data.csv
+2026-02-22 18:52:44,865 - data_ingestion - INFO - Saved train.csv and test.csv to data/processed
+2026-02-22 18:52:44,865 - data_ingestion - INFO - Data ingestion completed successfully
+2026-02-22 18:55:09,835 - data_ingestion - INFO - Starting data ingestion
+2026-02-22 18:55:09,842 - data_ingestion - INFO - Loaded raw data from data/raw/training_data.csv
+2026-02-22 18:55:09,851 - data_ingestion - INFO - Saved train.csv and test.csv to data/processed
+2026-02-22 18:55:09,852 - data_ingestion - INFO - Data ingestion completed successfully

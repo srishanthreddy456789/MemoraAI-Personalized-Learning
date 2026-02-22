@@ -1,1 +1,5 @@
 2026-02-22 15:10:04,676 - feature_engineering - INFO - Created features with 800 rows and 3 columns
+2026-02-22 17:54:50,882 - feature_engineering - ERROR - Missing required column: 'forgotten'
+2026-02-22 18:42:17,102 - feature_engineering - ERROR - Missing required column: 'forgotten'
+2026-02-22 18:52:49,760 - feature_engineering - ERROR - Missing required column: "Missing required columns: {'forgotten'}"
+2026-02-22 18:55:14,019 - feature_engineering - INFO - Created features with 77 rows and 3 columns

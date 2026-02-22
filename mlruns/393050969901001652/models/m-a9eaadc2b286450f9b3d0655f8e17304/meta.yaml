@@ -1,0 +1,10 @@
+artifact_location: file:///C:/Users/reddy/OneDrive/Desktop/memoryai/mlruns/393050969901001652/models/m-a9eaadc2b286450f9b3d0655f8e17304/artifacts
+creation_timestamp: 1771766714666
+experiment_id: '393050969901001652'
+last_updated_timestamp: 1771766728551
+model_id: m-a9eaadc2b286450f9b3d0655f8e17304
+model_type: null
+name: model
+source_run_id: a2b9ce7e02eb4201bc683172d58ed339
+status: 2
+status_message: null

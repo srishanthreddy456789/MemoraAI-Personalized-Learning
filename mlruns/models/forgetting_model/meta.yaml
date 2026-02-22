@@ -1,8 +1,8 @@
 aliases:
-  prod: '1'
+  prod: '2'
 creation_timestamp: 1771753221914
 deployment_job_id: null
 deployment_job_state: null
 description: null
-last_updated_timestamp: 1771753532141
+last_updated_timestamp: 1771766874867
 name: forgetting_model

@@ -6,3 +6,12 @@
 2026-02-22 15:05:52,205 - training_pipeline - CRITICAL - Training pipeline failed: [Errno 2] No such file or directory: 'data/processed\\train.csv'
 2026-02-22 15:10:04,630 - training_pipeline - INFO - Training pipeline started
 2026-02-22 15:10:26,367 - training_pipeline - INFO - Training pipeline completed successfully
+2026-02-22 17:54:50,867 - training_pipeline - INFO - Training pipeline started
+2026-02-22 17:54:50,884 - training_pipeline - CRITICAL - Training pipeline failed: 'forgotten'
+2026-02-22 18:42:17,089 - training_pipeline - INFO - Training pipeline started
+2026-02-22 18:42:17,103 - training_pipeline - CRITICAL - Training pipeline failed: 'forgotten'
+2026-02-22 18:52:49,746 - training_pipeline - INFO - Training pipeline started
+2026-02-22 18:52:49,760 - training_pipeline - CRITICAL - Training pipeline failed: "Missing required columns: {'forgotten'}"
+2026-02-22 18:55:14,001 - training_pipeline - INFO - Training pipeline started
+2026-02-22 18:55:14,012 - training_pipeline - DEBUG - Columns before feature engineering: ['last_studied_days', 'quiz_score', 'revision_count', 'forgotten']
+2026-02-22 18:55:32,883 - training_pipeline - INFO - Training pipeline completed successfully
