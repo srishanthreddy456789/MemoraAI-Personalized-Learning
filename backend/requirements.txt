@@ -1,0 +1,5 @@
+fastapi
+uvicorn
+sqlite-utils
+pydantic
+python-multipart
