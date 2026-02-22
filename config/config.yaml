@@ -1,0 +1,20 @@
+data_ingestion:
+  raw_data_path: data/raw/learning_logs.csv
+  processed_data_path: data/processed
+  test_size: 0.2
+  random_state: 42
+
+features:
+  input_features:
+    - last_studied_days
+    - quiz_score
+    - revision_count
+  quiz_score_threshold: 0.6
+
+model:
+  name: logistic_regression
+  max_iter: 200
+  random_state: 42
+
+mlflow:
+  experiment_name: memoraai_forgetting_prediction
