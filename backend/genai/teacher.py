@@ -93,15 +93,38 @@ def teacher_reply_stream(student_message, chat_history, weak_topics):
     prompt = build_prompt(student_message, chat_history, weak_topics)
     return call_llm_stream(prompt)
 
-def generate_quiz(topic: str) -> str:
-    prompt = f"""
-Generate 1 short quiz question about {topic}.
-Provide the correct answer clearly.
-Format:
+def generate_quiz(topic, mastery_score=0.5):
 
-Question:
-...
-Answer:
-...
+    if mastery_score < 0.4:
+        difficulty = "Ask a simple recall question."
+    elif mastery_score < 0.7:
+        difficulty = "Ask an applied understanding question."
+    else:
+        difficulty = "Ask a challenging conceptual reasoning question."
+
+    prompt = f"""
+Topic: {topic}
+
+{difficulty}
+
+Generate:
+Question: <one short question>
+Answer: <correct short answer>
+
+Return exactly in this format:
+Question: ...
+Answer: ...
 """
-    return call_llm(prompt)
+
+    response = call_llm(prompt)
+
+    question = ""
+    answer = ""
+
+    for line in response.splitlines():
+        if line.lower().startswith("question:"):
+            question = line.split("Question:", 1)[1].strip()
+        elif line.lower().startswith("answer:"):
+            answer = line.split("Answer:", 1)[1].strip()
+
+    return question, answer

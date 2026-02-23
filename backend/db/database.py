@@ -6,6 +6,8 @@ conn = sqlite3.connect(DB_NAME, check_same_thread=False)
 cursor = conn.cursor()
 
 def init_db():
+    print("Initializing DB...")
+    # ---------------- SESSIONS ----------------
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS sessions (
         id TEXT PRIMARY KEY,
@@ -14,6 +16,7 @@ def init_db():
     )
     """)
 
+    # ---------------- MESSAGES ----------------
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS messages (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -23,16 +26,21 @@ def init_db():
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
     """)
+
+    # ---------------- TOPICS ----------------
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS topics (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         session_id TEXT,
         topic TEXT,
         mastery_score REAL DEFAULT 0.5,
-        revision_count INTEGER DEFAULT 1,
-        last_reviewed TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        revision_count INTEGER DEFAULT 0,
+        last_reviewed TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        forgetting_probability REAL DEFAULT 0.5
     )
     """)
+
+    # ---------------- QUIZZES ----------------
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS quizzes (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -40,9 +48,25 @@ def init_db():
         topic TEXT,
         question TEXT,
         correct_answer TEXT,
-        user_answer TEXT,
-        score REAL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
     """)
+
+    # ---------------- QUIZ RESULTS ----------------
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS quiz_results (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        quiz_id INTEGER,
+        topic TEXT,
+        user_answer TEXT,
+        is_correct INTEGER,
+        timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (quiz_id) REFERENCES quizzes(id)
+    )
+    """)
+
+    # Optional performance indexes
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_topic_name ON topics(topic)")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_quiz_id ON quiz_results(quiz_id)")
+
     conn.commit()

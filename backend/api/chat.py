@@ -11,9 +11,20 @@ from ..db.database import cursor, conn
 import math
 
 def forgetting_probability(days_since, mastery_score, revision_count):
-    decay_rate = 0.15
-    stability = revision_count * mastery_score + 0.1
-    return math.exp(-decay_rate * days_since / stability)
+
+    # Dynamic decay: weak topics decay faster
+    decay_rate = 0.1 + (0.2 * (1 - mastery_score))
+
+    # Stability floor
+    stability = max(0.5, revision_count * mastery_score)
+
+    # Time decay
+    time_decay = math.exp(-decay_rate * days_since)
+
+    # Mastery reduces forgetting risk
+    adaptive_factor = (1 - mastery_score)
+
+    return time_decay * adaptive_factor
 
 router = APIRouter()
 
@@ -29,7 +40,27 @@ def quiz(request: ChatRequest):
 
     topic = extract_topic(request.message)
 
-    quiz_text = generate_quiz(topic)
+    # Fetch mastery for this topic
+    cursor.execute(
+        "SELECT mastery_score FROM topics WHERE session_id=? AND topic=?",
+        (request.session_id, topic)
+    )
+    row = cursor.fetchone()
+    mastery = row[0] if row else 0.5
+
+    question, answer = generate_quiz(topic, mastery)
+
+    cursor.execute(
+        "INSERT INTO quizzes (session_id, topic, question, correct_answer) VALUES (?, ?, ?, ?)",
+        (request.session_id, topic, question, answer)
+    )
+
+    conn.commit()
+
+    return {
+        "session_id": request.session_id,
+        "quiz": question
+    }
 
     cursor.execute(
         "INSERT INTO quizzes (session_id, topic, question, correct_answer) VALUES (?, ?, ?, ?)",
@@ -83,15 +114,12 @@ def chat(request: ChatRequest):
         revision_count, last_reviewed, mastery_score = row
         last_reviewed = datetime.fromisoformat(last_reviewed)
 
-        new_mastery = min(mastery_score + 0.02, 1.0)
-
         cursor.execute(
             """UPDATE topics 
             SET revision_count = revision_count + 1,
-                mastery_score = ?,
                 last_reviewed = CURRENT_TIMESTAMP
             WHERE session_id=? AND topic=?""",
-            (new_mastery, session_id, topic)
+            (session_id, topic)
         )
 
     else:
@@ -127,13 +155,15 @@ def chat(request: ChatRequest):
     auto_quiz = None
 
     # If forgetting probability is LOW → high forgetting risk
-    if forget_prob < 0.6:
-        auto_quiz = generate_quiz(topic)
+    if forget_prob < 0.4:
+        question, answer = generate_quiz(topic, mastery_score)
 
         cursor.execute(
             "INSERT INTO quizzes (session_id, topic, question, correct_answer) VALUES (?, ?, ?, ?)",
-            (session_id, topic, auto_quiz, "")
+            (session_id, topic, question, answer)
         )
+
+        auto_quiz = question
         conn.commit()
 
     # -----------------------------
