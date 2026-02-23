@@ -23,5 +23,26 @@ def init_db():
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
     """)
-
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS topics (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        session_id TEXT,
+        topic TEXT,
+        mastery_score REAL DEFAULT 0.5,
+        revision_count INTEGER DEFAULT 1,
+        last_reviewed TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+    """)
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS quizzes (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        session_id TEXT,
+        topic TEXT,
+        question TEXT,
+        correct_answer TEXT,
+        user_answer TEXT,
+        score REAL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+    """)
     conn.commit()

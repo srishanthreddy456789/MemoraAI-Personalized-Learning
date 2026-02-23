@@ -1,7 +1,7 @@
 from fastapi import FastAPI
-from api.chat import router as chat_router
-from api.sessions import router as sessions_router
-from db.database import init_db
+from .api.chat import router as chat_router
+from .api.sessions import router as sessions_router
+from    .db.database import init_db
 
 app = FastAPI(title="MemoraAI Backend")
 
