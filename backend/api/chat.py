@@ -9,6 +9,8 @@ from ..ml.predictor import predict_weakness
 from ..genai.teacher import teacher_reply
 from ..db.database import cursor, conn
 import math
+from fastapi import Depends, HTTPException
+from ..utils.dependencies import get_current_user
 
 def forgetting_probability(days_since, mastery_score, revision_count):
 
@@ -34,17 +36,28 @@ class ChatRequest(BaseModel):
     message: str
 
 @router.post("/quiz")
-def quiz(request: ChatRequest):
+def quiz(request: ChatRequest, user_id: int = Depends(get_current_user)):
 
     from ..genai.teacher import generate_quiz, extract_topic
 
     topic = extract_topic(request.message)
 
-    # Fetch mastery for this topic
+    # 🔐 Verify session ownership
     cursor.execute(
-        "SELECT mastery_score FROM topics WHERE session_id=? AND topic=?",
-        (request.session_id, topic)
+        "SELECT id FROM sessions WHERE id=? AND user_id=?",
+        (request.session_id, user_id)
     )
+    if not cursor.fetchone():
+        raise HTTPException(status_code=403, detail="Unauthorized session access")
+
+    # 🔐 Secure mastery fetch
+    cursor.execute("""
+        SELECT t.mastery_score
+        FROM topics t
+        JOIN sessions s ON t.session_id = s.id
+        WHERE t.session_id=? AND t.topic=? AND s.user_id=?
+    """, (request.session_id, topic, user_id))
+
     row = cursor.fetchone()
     mastery = row[0] if row else 0.5
 
@@ -61,19 +74,8 @@ def quiz(request: ChatRequest):
         "session_id": request.session_id,
         "quiz": question
     }
-
-    cursor.execute(
-        "INSERT INTO quizzes (session_id, topic, question, correct_answer) VALUES (?, ?, ?, ?)",
-        (request.session_id, topic, quiz_text, "")
-    )
-    conn.commit()
-
-    return {
-        "session_id": request.session_id,
-        "quiz": quiz_text
-    }
 @router.post("/chat")
-def chat(request: ChatRequest):
+def chat(request: ChatRequest, user_id: int = Depends(get_current_user)):
 
     session_id = request.session_id
     message = request.message
@@ -84,16 +86,23 @@ def chat(request: ChatRequest):
     if not session_id:
         session_id = str(uuid.uuid4())
         cursor.execute(
-            "INSERT INTO sessions (id, title) VALUES (?, ?)",
-            (session_id, message[:30])
+            "INSERT INTO sessions (id, user_id, title) VALUES (?, ?, ?)",
+            (session_id, user_id, message[:30])
         )
-
+    
+    cursor.execute(
+        "SELECT id FROM sessions WHERE id=? AND user_id=?",
+        (session_id, user_id)
+    )
+    if not cursor.fetchone():
+        raise HTTPException(status_code=403, detail="Unauthorized session access")
     # -----------------------------
     # Get previous chat history
     # -----------------------------
+
     cursor.execute(
-        "SELECT role, content FROM messages WHERE session_id = ?",
-        (session_id,)
+        "SELECT m.role, m.content FROM messages m JOIN sessions s ON m.session_id = s.id WHERE m.session_id=? AND s.user_id=?",
+        (session_id, user_id)
     )
     history = [{"role": r, "content": c} for r, c in cursor.fetchall()]
 
@@ -104,8 +113,8 @@ def chat(request: ChatRequest):
     topic = extract_topic(message)
 
     cursor.execute(
-    "SELECT revision_count, last_reviewed, mastery_score FROM topics WHERE session_id=? AND topic=?",
-    (session_id, topic)
+    "SELECT t.revision_count, t.last_reviewed, t.mastery_score FROM topics t JOIN sessions s ON t.session_id = s.id WHERE t.session_id=? AND t.topic=? AND s.user_id=?",
+    (session_id, topic, user_id)
     )
 
     row = cursor.fetchone()

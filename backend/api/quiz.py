@@ -3,7 +3,8 @@ from pydantic import BaseModel
 from datetime import datetime
 from ..db.database import conn, cursor
 import re
-
+from fastapi import Depends
+from ..utils.dependencies import get_current_user
 router = APIRouter()
 
 # ---------------- Request Schema ----------------
@@ -58,13 +59,15 @@ def update_mastery(current_score: float, correct: bool) -> float:
 # ---------------- Endpoint ----------------
 
 @router.post("/quiz/submit")
-def submit_quiz(payload: QuizSubmitRequest):
+def submit_quiz(payload: QuizSubmitRequest, user_id: int = Depends(get_current_user)):
 
     # Fetch quiz
-    cursor.execute(
-        "SELECT topic, correct_answer FROM quizzes WHERE id = ?",
-        (payload.quiz_id,)
-    )
+    cursor.execute("""
+        SELECT q.topic, q.correct_answer
+        FROM quizzes q
+        JOIN sessions s ON q.session_id = s.id
+        WHERE q.id = ? AND s.user_id = ?
+    """, (payload.quiz_id, user_id))
     quiz = cursor.fetchone()
 
     if not quiz:
@@ -83,10 +86,12 @@ def submit_quiz(payload: QuizSubmitRequest):
 
     # Fetch topic mastery
     cursor.execute("""
-        SELECT mastery_score, revision_count
-        FROM topics
-        WHERE topic = ?
-    """, (topic,))
+        SELECT t.mastery_score, t.revision_count
+        FROM topics t
+        JOIN sessions s ON t.session_id = s.id
+        JOIN quizzes q ON q.session_id = s.id
+        WHERE q.id = ? AND s.user_id = ?
+    """, (payload.quiz_id, user_id))
     topic_data = cursor.fetchone()
 
     if not topic_data:
@@ -104,8 +109,15 @@ def submit_quiz(payload: QuizSubmitRequest):
         SET mastery_score = ?,
             revision_count = ?,
             last_reviewed = ?
-        WHERE topic = ?
-    """, (new_mastery, new_revision_count, now, topic))
+        WHERE id = (
+            SELECT t.id
+            FROM topics t
+            JOIN sessions s ON t.session_id = s.id
+            JOIN quizzes q ON q.session_id = s.id
+            WHERE q.id = ? AND s.user_id = ?
+            LIMIT 1
+        )
+    """, (new_mastery, new_revision_count, now, payload.quiz_id, user_id))
 
     conn.commit()
 

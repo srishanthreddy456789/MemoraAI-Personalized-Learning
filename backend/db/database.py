@@ -7,12 +7,25 @@ cursor = conn.cursor()
 
 def init_db():
     print("Initializing DB...")
+
+    # ---------------- USERS ----------------
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS users (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        email TEXT UNIQUE NOT NULL,
+        password TEXT NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+    """)
+
     # ---------------- SESSIONS ----------------
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS sessions (
         id TEXT PRIMARY KEY,
+        user_id INTEGER,
         title TEXT,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY(user_id) REFERENCES users(id)
     )
     """)
 
@@ -23,7 +36,8 @@ def init_db():
         session_id TEXT,
         role TEXT,
         content TEXT,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY(session_id) REFERENCES sessions(id)
     )
     """)
 
@@ -36,7 +50,8 @@ def init_db():
         mastery_score REAL DEFAULT 0.5,
         revision_count INTEGER DEFAULT 0,
         last_reviewed TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        forgetting_probability REAL DEFAULT 0.5
+        forgetting_probability REAL DEFAULT 0.5,
+        FOREIGN KEY(session_id) REFERENCES sessions(id)
     )
     """)
 
@@ -48,7 +63,8 @@ def init_db():
         topic TEXT,
         question TEXT,
         correct_answer TEXT,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY(session_id) REFERENCES sessions(id)
     )
     """)
 
@@ -65,7 +81,8 @@ def init_db():
     )
     """)
 
-    # Optional performance indexes
+    # Indexes
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id)")
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_topic_name ON topics(topic)")
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_quiz_id ON quiz_results(quiz_id)")
 
