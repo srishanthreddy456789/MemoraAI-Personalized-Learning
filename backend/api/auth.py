@@ -3,11 +3,10 @@ from pydantic import BaseModel
 from passlib.context import CryptContext
 from jose import jwt
 from datetime import datetime, timedelta
-from ..db.database import cursor, conn
+from ..db.database import get_connection
 
 router = APIRouter()
 
-# 🔐 Change this in production
 SECRET_KEY = "MEMORAAI_SUPER_SECRET"
 ALGORITHM = "HS256"
 
@@ -55,18 +54,26 @@ def create_token(user_id: int):
 @router.post("/register")
 def register(user: UserCreate):
 
-    hashed = hash_password(user.password)
+    conn = get_connection()
+    cursor = conn.cursor()
 
     try:
+        hashed = hash_password(user.password)
+
         cursor.execute(
             "INSERT INTO users (email, password) VALUES (?, ?)",
             (user.email, hashed)
         )
+
         conn.commit()
-    except:
+        return {"message": "User created successfully"}
+
+    except Exception:
         raise HTTPException(status_code=400, detail="User already exists")
 
-    return {"message": "User created successfully"}
+    finally:
+        cursor.close()
+        conn.close()
 
 
 # -----------------------------
@@ -75,20 +82,28 @@ def register(user: UserCreate):
 @router.post("/login")
 def login(user: UserLogin):
 
-    cursor.execute(
-        "SELECT id, password FROM users WHERE email=?",
-        (user.email,)
-    )
-    row = cursor.fetchone()
+    conn = get_connection()
+    cursor = conn.cursor()
 
-    if not row:
-        raise HTTPException(status_code=400, detail="Invalid credentials")
+    try:
+        cursor.execute(
+            "SELECT id, password FROM users WHERE email=?",
+            (user.email,)
+        )
+        row = cursor.fetchone()
 
-    user_id, hashed_password = row
+        if not row:
+            raise HTTPException(status_code=400, detail="Invalid credentials")
 
-    if not verify_password(user.password, hashed_password):
-        raise HTTPException(status_code=400, detail="Invalid credentials")
+        user_id, hashed_password = row
 
-    token = create_token(user_id)
+        if not verify_password(user.password, hashed_password):
+            raise HTTPException(status_code=400, detail="Invalid credentials")
 
-    return {"access_token": token}
+        token = create_token(user_id)
+
+        return {"access_token": token}
+
+    finally:
+        cursor.close()
+        conn.close()

@@ -2,11 +2,14 @@ import sqlite3
 
 DB_NAME = "memory.db"
 
-conn = sqlite3.connect(DB_NAME, check_same_thread=False)
-cursor = conn.cursor()
+def get_connection():
+    return sqlite3.connect(DB_NAME, check_same_thread=False)
 
 def init_db():
     print("Initializing DB...")
+
+    conn = get_connection()
+    cursor = conn.cursor()
 
     # ---------------- USERS ----------------
     cursor.execute("""
@@ -87,3 +90,5 @@ def init_db():
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_quiz_id ON quiz_results(quiz_id)")
 
     conn.commit()
+    cursor.close()
+    conn.close()

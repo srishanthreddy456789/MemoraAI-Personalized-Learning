@@ -5,6 +5,7 @@ import mlflow.sklearn
 import pandas as pd
 import yaml
 import logging
+from fastapi.middleware.cors import CORSMiddleware
 
 # ---------------- Logging ----------------
 logging.basicConfig(level=logging.INFO)
@@ -16,7 +17,15 @@ app = FastAPI(
     description="Forgetting Prediction using MLflow + FastAPI",
     version="1.0"
 )
+from fastapi.middleware.cors import CORSMiddleware
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 # ---------------- Load Config ----------------
 def load_params(path="config/params.yaml"):
     with open(path, "r") as f:

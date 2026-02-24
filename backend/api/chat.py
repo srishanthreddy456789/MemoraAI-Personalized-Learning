@@ -7,7 +7,7 @@ from pydantic import BaseModel
 
 from ..ml.predictor import predict_weakness
 from ..genai.teacher import teacher_reply
-from ..db.database import cursor, conn
+from ..db.database import get_connection
 import math
 from fastapi import Depends, HTTPException
 from ..utils.dependencies import get_current_user
@@ -40,6 +40,9 @@ def quiz(request: ChatRequest, user_id: int = Depends(get_current_user)):
 
     from ..genai.teacher import generate_quiz, extract_topic
 
+    conn = get_connection()
+    cursor = conn.cursor()
+
     topic = extract_topic(request.message)
 
     # 🔐 Verify session ownership
@@ -48,6 +51,8 @@ def quiz(request: ChatRequest, user_id: int = Depends(get_current_user)):
         (request.session_id, user_id)
     )
     if not cursor.fetchone():
+        cursor.close()
+        conn.close()
         raise HTTPException(status_code=403, detail="Unauthorized session access")
 
     # 🔐 Secure mastery fetch
@@ -68,136 +73,143 @@ def quiz(request: ChatRequest, user_id: int = Depends(get_current_user)):
         (request.session_id, topic, question, answer)
     )
 
+    quiz_id = cursor.lastrowid
     conn.commit()
 
+    cursor.close()
+    conn.close()
+
     return {
+        "quiz_id": quiz_id,
         "session_id": request.session_id,
         "quiz": question
     }
 @router.post("/chat")
-def chat(request: ChatRequest, user_id: int = Depends(get_current_user)):
+def chat(request: ChatRequest):
+    user_id = 1  # temporary dev user
+    conn = get_connection()
+    cursor = conn.cursor()
 
-    session_id = request.session_id
-    message = request.message
+    try:
+        session_id = request.session_id
+        message = request.message
 
-    # -----------------------------
-    # Create session if not exists
-    # -----------------------------
-    if not session_id:
-        session_id = str(uuid.uuid4())
-        cursor.execute(
-            "INSERT INTO sessions (id, user_id, title) VALUES (?, ?, ?)",
-            (session_id, user_id, message[:30])
-        )
-    
-    cursor.execute(
-        "SELECT id FROM sessions WHERE id=? AND user_id=?",
-        (session_id, user_id)
-    )
-    if not cursor.fetchone():
-        raise HTTPException(status_code=403, detail="Unauthorized session access")
-    # -----------------------------
-    # Get previous chat history
-    # -----------------------------
-
-    cursor.execute(
-        "SELECT m.role, m.content FROM messages m JOIN sessions s ON m.session_id = s.id WHERE m.session_id=? AND s.user_id=?",
-        (session_id, user_id)
-    )
-    history = [{"role": r, "content": c} for r, c in cursor.fetchall()]
-
-    # -----------------------------
-    # Topic Tracking Logic
-    # -----------------------------
-    from ..genai.teacher import extract_topic
-    topic = extract_topic(message)
-
-    cursor.execute(
-    "SELECT t.revision_count, t.last_reviewed, t.mastery_score FROM topics t JOIN sessions s ON t.session_id = s.id WHERE t.session_id=? AND t.topic=? AND s.user_id=?",
-    (session_id, topic, user_id)
-    )
-
-    row = cursor.fetchone()
-
-    if row:
-        revision_count, last_reviewed, mastery_score = row
-        last_reviewed = datetime.fromisoformat(last_reviewed)
+        # -----------------------------
+        # Create session if needed
+        # -----------------------------
+        if not session_id:
+            session_id = str(uuid.uuid4())
+            cursor.execute(
+                "INSERT INTO sessions (id, user_id, title) VALUES (?, ?, ?)",
+                (session_id, user_id, message[:30])
+            )
 
         cursor.execute(
-            """UPDATE topics 
-            SET revision_count = revision_count + 1,
-                last_reviewed = CURRENT_TIMESTAMP
-            WHERE session_id=? AND topic=?""",
-            (session_id, topic)
+            "SELECT id FROM sessions WHERE id=?",
+            (session_id,)
         )
+        if not cursor.fetchone():
+            raise HTTPException(status_code=404, detail="Session not found")
 
-    else:
-        revision_count = 1
-        mastery_score = 0.5
-        last_reviewed = datetime.now()
+        # -----------------------------
+        # Load chat history
+        # -----------------------------
+        cursor.execute(
+            """SELECT m.role, m.content 
+               FROM messages m 
+               JOIN sessions s ON m.session_id = s.id 
+               WHERE m.session_id=? AND s.user_id=?""",
+            (session_id, user_id)
+        )
+        history = [{"role": r, "content": c} for r, c in cursor.fetchall()]
+
+        # -----------------------------
+        # Topic Tracking
+        # -----------------------------
+        from ..genai.teacher import extract_topic, generate_quiz
+        topic = extract_topic(message)
 
         cursor.execute(
-            "INSERT INTO topics (session_id, topic) VALUES (?, ?)",
-            (session_id, topic)
+            """SELECT t.revision_count, t.last_reviewed, t.mastery_score 
+               FROM topics t 
+               JOIN sessions s ON t.session_id = s.id 
+               WHERE t.session_id=? AND t.topic=? AND s.user_id=?""",
+            (session_id, topic, user_id)
         )
 
-    conn.commit()
+        row = cursor.fetchone()
 
-    # -----------------------------
-    # Build Real ML Features
-    # -----------------------------
-    days_since = (datetime.now() - last_reviewed).days
-    forget_prob = forgetting_probability(days_since, mastery_score, revision_count)
+        if row:
+            revision_count, last_reviewed, mastery_score = row
+            last_reviewed = datetime.fromisoformat(last_reviewed)
 
-    features = {
-        "last_studied_days": days_since,
-        "revision_count": revision_count,
-        "quiz_score": 0.5  # temporary until quiz system added
-    }
+            cursor.execute(
+                """UPDATE topics 
+                   SET revision_count = revision_count + 1,
+                       last_reviewed = CURRENT_TIMESTAMP
+                   WHERE session_id=? AND topic=?""",
+                (session_id, topic)
+            )
+        else:
+            revision_count = 1
+            mastery_score = 0.5
+            last_reviewed = datetime.now()
 
-    # -----------------------------
-    # ML Prediction
-    # -----------------------------
-    weak_topics = predict_weakness(features)
-    from ..genai.teacher import generate_quiz
+            cursor.execute(
+                "INSERT INTO topics (session_id, topic) VALUES (?, ?)",
+                (session_id, topic)
+            )
 
-    auto_quiz = None
+        # -----------------------------
+        # ML + Forgetting
+        # -----------------------------
+        days_since = (datetime.now() - last_reviewed).days
+        forget_prob = forgetting_probability(days_since, mastery_score, revision_count)
 
-    # If forgetting probability is LOW → high forgetting risk
-    if forget_prob < 0.4:
-        question, answer = generate_quiz(topic, mastery_score)
+        features = {
+            "last_studied_days": days_since,
+            "revision_count": revision_count,
+            "quiz_score": 0.5
+        }
+
+        weak_topics = predict_weakness(features)
+
+        auto_quiz = None
+        if forget_prob < 0.4:
+            question, answer = generate_quiz(topic, mastery_score)
+
+            cursor.execute(
+                "INSERT INTO quizzes (session_id, topic, question, correct_answer) VALUES (?, ?, ?, ?)",
+                (session_id, topic, question, answer)
+            )
+
+            auto_quiz = question
+
+        # -----------------------------
+        # GenAI Reply
+        # -----------------------------
+        reply = teacher_reply(message, history, weak_topics)
 
         cursor.execute(
-            "INSERT INTO quizzes (session_id, topic, question, correct_answer) VALUES (?, ?, ?, ?)",
-            (session_id, topic, question, answer)
+            "INSERT INTO messages (session_id, role, content) VALUES (?, ?, ?)",
+            (session_id, "student", message)
+        )
+        cursor.execute(
+            "INSERT INTO messages (session_id, role, content) VALUES (?, ?, ?)",
+            (session_id, "teacher", reply)
         )
 
-        auto_quiz = question
+        # ✅ ONLY ONE COMMIT HERE
         conn.commit()
 
-    # -----------------------------
-    # GenAI Response
-    # -----------------------------
-    reply = teacher_reply(message, history, weak_topics)
+        return {
+            "session_id": session_id,
+            "reply": reply,
+            "weak_topics": weak_topics,
+            "auto_quiz": auto_quiz,
+            "forgetting_probability": forget_prob
+        }
 
-    # -----------------------------
-    # Save Messages
-    # -----------------------------
-    cursor.execute(
-        "INSERT INTO messages (session_id, role, content) VALUES (?, ?, ?)",
-        (session_id, "student", message)
-    )
-    cursor.execute(
-        "INSERT INTO messages (session_id, role, content) VALUES (?, ?, ?)",
-        (session_id, "teacher", reply)
-    )
-
-    conn.commit()
-
-    return {
-        "session_id": session_id,
-        "reply": reply,
-        "weak_topics": weak_topics,
-        "auto_quiz": auto_quiz,
-        "forgetting_probability": forget_prob
-    }
+    finally:
+        cursor.close()
+        conn.close()

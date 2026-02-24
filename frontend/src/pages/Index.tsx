@@ -31,6 +31,41 @@ const Index = () => {
   const filteredChats = chatHistory.filter((chat) =>
     chat.title.toLowerCase().includes(searchQuery.toLowerCase())
   );
+const [messages, setMessages] = useState<any[]>([]);
+const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
+const sendMessage = async () => {
+  if (!messageInput.trim()) return;
+
+  try {
+    const response = await fetch("http://127.0.0.1:8000/chat", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        // Add Authorization here if needed
+      },
+      body: JSON.stringify({
+        session_id: currentSessionId,
+        message: messageInput,
+      }),
+    });
+
+    const data = await response.json();
+
+    if (!currentSessionId) {
+      setCurrentSessionId(data.session_id);
+    }
+
+    setMessages((prev) => [
+      ...prev,
+      { role: "student", content: messageInput },
+      { role: "teacher", content: data.reply },
+    ]);
+
+    setMessageInput("");
+  } catch (error) {
+    console.error("Send error:", error);
+  }
+};
 
   return (
     <div className="flex h-screen w-full overflow-hidden bg-background">
@@ -159,14 +194,39 @@ const Index = () => {
 
         {/* Middle Chat Area */}
         <div className="flex-1 overflow-y-auto">
-          <div className="mx-auto flex h-full max-w-3xl flex-col items-center justify-center px-6 py-12">
-            <div className="mb-6 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10">
-              <Brain className="h-7 w-7 text-primary" />
-            </div>
-            <h2 className="mb-2 text-2xl font-semibold text-foreground">How can I help you today?</h2>
-            <p className="text-center text-sm text-muted-foreground">
-              Ask me anything — I'm here to assist with code, ideas, and more.
-            </p>
+          <div className="mx-auto flex max-w-3xl flex-col px-6 py-6 space-y-4">
+            {messages.length === 0 ? (
+              <>
+                <div className="mb-6 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10">
+                  <Brain className="h-7 w-7 text-primary" />
+                </div>
+                <h2 className="text-2xl font-semibold text-foreground">
+                  How can I help you today?
+                </h2>
+                <p className="text-sm text-muted-foreground">
+                  Ask me anything — I'm here to assist with code, ideas, and more.
+                </p>
+              </>
+            ) : (
+              messages.map((msg, index) => (
+                <div
+                  key={index}
+                  className={`flex ${
+                    msg.role === "student" ? "justify-end" : "justify-start"
+                  }`}
+                >
+                  <div
+                    className={`max-w-md rounded-2xl px-4 py-2 text-sm ${
+                      msg.role === "student"
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-secondary text-foreground"
+                    }`}
+                  >
+                    {msg.content}
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </div>
 
@@ -187,6 +247,7 @@ const Index = () => {
                 className="flex-1 resize-none bg-transparent py-1.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
               />
               <button
+                onClick={sendMessage}
                 className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-40"
                 disabled={!messageInput.trim()}
               >
