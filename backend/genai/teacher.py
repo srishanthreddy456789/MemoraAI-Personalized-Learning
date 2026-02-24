@@ -1,9 +1,29 @@
-import subprocess
+import requests
 from ..genai.prompts import SYSTEM_PROMPT
+
+OLLAMA_URL = "http://localhost:11434/api/generate"
+MODEL_NAME = "llama3"
 
 
 # -----------------------------
-# Topic Extraction (NEW)
+# Internal LLM Caller (HTTP API)
+# -----------------------------
+def call_llm(prompt: str) -> str:
+    response = requests.post(
+        OLLAMA_URL,
+        json={
+            "model": MODEL_NAME,
+            "prompt": prompt,
+            "stream": False
+        },
+        timeout=120
+    )
+
+    return response.json()["response"].strip()
+
+
+# -----------------------------
+# Topic Extraction
 # -----------------------------
 def extract_topic(student_message: str) -> str:
     prompt = f"""
@@ -14,15 +34,7 @@ Do not explain anything.
 Message: "{student_message}"
 Topic:
 """
-
-    result = subprocess.run(
-        ["ollama", "run", "llama3"],
-        input=prompt,
-        text=True,
-        capture_output=True
-    )
-
-    return result.stdout.strip().lower()
+    return call_llm(prompt).lower()
 
 
 # -----------------------------
@@ -33,7 +45,7 @@ def build_prompt(student_message, chat_history, weak_topics):
 
     if weak_topics:
         prompt += (
-            f"IMPORTANT: The student is likely to forget: {', '.join(weak_topics)}. "
+            f"\nIMPORTANT: The student is likely to forget: {', '.join(weak_topics)}.\n"
             "Focus more on these topics. Ask diagnostic questions before explaining.\n"
             "Generate quizzes to reinforce learning.\n"
         )
@@ -42,57 +54,20 @@ def build_prompt(student_message, chat_history, weak_topics):
         prompt += f"{msg['role']}: {msg['content']}\n"
 
     prompt += f"student: {student_message}\nteacher:"
-
     return prompt
 
 
 # -----------------------------
-# Normal (Full) Response Mode
+# Normal Response Mode
 # -----------------------------
-def call_llm(prompt: str) -> str:
-    result = subprocess.run(
-        ["ollama", "run", "llama3"],
-        input=prompt,
-        text=True,
-        capture_output=True
-    )
-    return result.stdout.strip()
-
-
 def teacher_reply(student_message, chat_history, weak_topics):
     prompt = build_prompt(student_message, chat_history, weak_topics)
     return call_llm(prompt)
 
 
 # -----------------------------
-# Streaming Mode
+# Quiz Generator
 # -----------------------------
-def call_llm_stream(prompt: str):
-    process = subprocess.Popen(
-        ["ollama", "run", "llama3"],
-        stdin=subprocess.PIPE,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        text=True,
-        encoding="utf-8",
-        errors="ignore",
-        bufsize=1
-    )
-
-    process.stdin.write(prompt)
-    process.stdin.close()
-
-    for line in process.stdout:
-        yield line
-
-    process.stdout.close()
-    process.wait()
-
-
-def teacher_reply_stream(student_message, chat_history, weak_topics):
-    prompt = build_prompt(student_message, chat_history, weak_topics)
-    return call_llm_stream(prompt)
-
 def generate_quiz(topic, mastery_score=0.5):
 
     if mastery_score < 0.4:
