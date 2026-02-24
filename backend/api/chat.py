@@ -85,8 +85,7 @@ def quiz(request: ChatRequest, user_id: int = Depends(get_current_user)):
         "quiz": question
     }
 @router.post("/chat")
-def chat(request: ChatRequest):
-    user_id = 1  # temporary dev user
+def chat(request: ChatRequest, user_id: int = Depends(get_current_user)):
     conn = get_connection()
     cursor = conn.cursor()
 

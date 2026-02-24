@@ -3,7 +3,13 @@ import sqlite3
 DB_NAME = "memory.db"
 
 def get_connection():
-    return sqlite3.connect(DB_NAME, check_same_thread=False)
+    conn = sqlite3.connect(
+        DB_NAME,
+        check_same_thread=False,
+        timeout=10
+    )
+    conn.execute("PRAGMA journal_mode=WAL;")  # 🔥 enables better concurrency
+    return conn
 
 def init_db():
     print("Initializing DB...")
