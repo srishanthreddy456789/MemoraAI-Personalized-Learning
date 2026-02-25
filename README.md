@@ -6,9 +6,12 @@ This project was built as a **full‑stack AI system** with authentication, chat
 
 ---
 ##  WorkFlow
+<img src="image/workflow.jpg"/>
 ##  Snapshot
 **Frontend**
-**Backendn**
+<img src="image/frontend.jpg"/>
+**Backend Endpoints**
+<img src="image/backend.jpg"/>
 ## 🚀 Key Features
 
 
@@ -222,5 +225,6 @@ This project is for **educational and research purposes**.
 ---
 
 ✨ *MemoraAI focuses on learning what you forget — and helping you remember it better.*
+
 
 
