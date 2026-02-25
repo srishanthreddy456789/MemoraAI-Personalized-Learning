@@ -1,6 +1,6 @@
 // frontend/src/lib/api.ts
 
-const API_BASE = "https://memoraai-personalized-learning-m7td.onrender.com";
+const API_BASE = "http://127.0.0.1:8000";
 
 export async function fetchSessions(): Promise<string[]> {
   const res = await fetch(`${API_BASE}/sessions`);

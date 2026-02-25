@@ -50,7 +50,7 @@ const Index = () => {
       const token = localStorage.getItem("token");
 
       const res = await fetch(
-        "https://memoraai-personalized-learning-m7td.onrender.com/sessions",
+        "http://127.0.0.1:8000/sessions",
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -85,7 +85,7 @@ const Index = () => {
       const token = localStorage.getItem("token");
 
       const response = await fetch(
-        "https://memoraai-personalized-learning-m7td.onrender.com/chat",
+        "http://127.0.0.1:8000/chat",
         {
           method: "POST",
           headers: {
@@ -136,7 +136,7 @@ const Index = () => {
       const token = localStorage.getItem("token");
 
       const res = await fetch(
-        `https://memoraai-personalized-learning-m7td.onrender.com/sessions/${sessionId}`,
+        `http://127.0.0.1:8000/sessions/${sessionId}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,

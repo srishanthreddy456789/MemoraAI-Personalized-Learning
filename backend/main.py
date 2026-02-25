@@ -13,11 +13,7 @@ app = FastAPI(title="MemoraAI Backend")
 # 🔥 ADD THIS BLOCK RIGHT AFTER app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:8080",
-        "https://memora-ai-personalized-learning.vercel.app",
-        "https://memora-ai-personalized-learning-4753n08wa.vercel.app",
-    ],
+    allow_origins=["http://localhost:8080"],  # your frontend
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
