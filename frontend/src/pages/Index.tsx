@@ -49,11 +49,14 @@ const Index = () => {
     const fetchSessions = async () => {
       const token = localStorage.getItem("token");
 
-      const res = await fetch("http://127.0.0.1:8000/sessions", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const res = await fetch(
+        "https://memoraai-personalized-learning-m7td.onrender.com/sessions",
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
 
       if (res.ok) {
         const data = await res.json();
@@ -81,17 +84,20 @@ const Index = () => {
     try {
       const token = localStorage.getItem("token");
 
-      const response = await fetch("http://127.0.0.1:8000/chat", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          session_id: currentSessionId,
-          message: messageInput,
-        }),
-      });
+      const response = await fetch(
+        "https://memoraai-personalized-learning-m7td.onrender.com/chat",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            session_id: currentSessionId,
+            message: messageInput,
+          }),
+        }
+      );
 
       if (response.status === 401) {
         localStorage.removeItem("token");
@@ -130,7 +136,7 @@ const Index = () => {
       const token = localStorage.getItem("token");
 
       const res = await fetch(
-        `http://127.0.0.1:8000/sessions/${sessionId}`,
+        `https://memoraai-personalized-learning-m7td.onrender.com/sessions/${sessionId}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
