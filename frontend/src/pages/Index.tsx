@@ -39,33 +39,47 @@ const Index = () => {
   const [dark, setDark] = useState(true);
 
   // ---------------- AUTH GUARD ----------------
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (!token) navigate("/login");
-  }, []);
+useEffect(() => {
+  const token = localStorage.getItem("token");
+
+  if (!token) {
+    navigate("/login", { replace: true });
+    return;
+  }
+
+  // Optional: verify token with backend
+  fetch("http://127.0.0.1:8000/health")
+    .catch(() => {
+      localStorage.removeItem("token");
+      navigate("/login", { replace: true });
+    });
+
+}, [navigate]);
 
   // ---------------- FETCH SESSIONS ----------------
-  useEffect(() => {
-    const fetchSessions = async () => {
+useEffect(() => {
+  const fetchSessions = async () => {
+    try {
       const token = localStorage.getItem("token");
 
-      const res = await fetch(
-        "http://127.0.0.1:8000/sessions",
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      const res = await fetch("http://127.0.0.1:8000/sessions", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
 
-      if (res.ok) {
-        const data = await res.json();
-        setSessions(data);
-      }
-    };
+      if (!res.ok) throw new Error("Session fetch failed");
 
-    fetchSessions();
-  }, []);
+      const data = await res.json();
+      setSessions(data);
+
+    } catch (err) {
+      console.error("Session error:", err);
+      localStorage.removeItem("token");
+      navigate("/login");
+    }
+  };
+
+  fetchSessions();
+}, [navigate]);
 
   // ---------------- DARK MODE ----------------
   useEffect(() => {

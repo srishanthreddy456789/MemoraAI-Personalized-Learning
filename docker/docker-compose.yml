@@ -1,17 +1,28 @@
+version: "3.9"
+
 services:
-  api:
+
+  backend:
     build:
       context: ..
       dockerfile: docker/Dockerfile
+    container_name: memora_backend
     ports:
       - "8000:8000"
     volumes:
       - ..:/app
-    depends_on:
-      - mlflow
+    restart: always
 
-  mlflow:
-    image: ghcr.io/mlflow/mlflow
+  frontend:
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile
+    container_name: memora_frontend
     ports:
-      - "5000:5000"
-    command: mlflow ui --host 0.0.0.0
+      - "8080:8080"
+    volumes:
+      - ../frontend:/app
+      - /app/node_modules
+    depends_on:
+      - backend
+    restart: always
