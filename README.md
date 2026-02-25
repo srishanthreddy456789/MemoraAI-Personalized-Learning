@@ -5,10 +5,10 @@ MemoraAI is a **personalized learning system** that combines **Generative AI (Ge
 This project was built as a **full‑stack AI system** with authentication, chat-based learning, ML-driven performance prediction, and automated training pipelines.
 
 ---
-##WorkFlow
-##Snapshot
-*Frontend
-*Backend
+##  WorkFlow
+##  Snapshot
+**Frontend**
+**Backendn**
 ## 🚀 Key Features
 
 
@@ -222,4 +222,5 @@ This project is for **educational and research purposes**.
 ---
 
 ✨ *MemoraAI focuses on learning what you forget — and helping you remember it better.*
+
 
