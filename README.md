@@ -24,6 +24,15 @@ This project was built as a **full‑stack AI system** with authentication, chat
 * 📊 **Session Tracking** – Tracks messages, sessions, and interaction patterns
 
 ---
+## ▶️ Docker Images
+
+```bash
+# Backend
+docker pull srishanthreddy3110/memora-backend
+
+# Frontend
+docker pull srishanthreddy3110/memora-frontend
+```
 
 ## 🧠 How MemoraAI Works (Workflow)
 
@@ -225,6 +234,7 @@ This project is for **educational and research purposes**.
 ---
 
 ✨ *MemoraAI focuses on learning what you forget — and helping you remember it better.*
+
 
 
 
