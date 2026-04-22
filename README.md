@@ -104,7 +104,8 @@ docker pull srishanthreddy3110/memora-frontend
 * Docker (local usage)
 * DVC for data versioning
 * Automated ML pipelines
-* MLFlow
+* MLFlow for Experiment Tracking
+* git for code versioning
 * CICD
 
 ---
