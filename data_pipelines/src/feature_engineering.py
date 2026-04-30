@@ -1,6 +1,6 @@
 import logging
 import os
-from src.utils import load_params
+from data_pipelines.src.utils import load_params
 
 # ---------------- Logging ----------------
 LOG_DIR = "logs"

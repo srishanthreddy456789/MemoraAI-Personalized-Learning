@@ -2,7 +2,7 @@ import pandas as pd
 import os
 import logging
 from sklearn.model_selection import train_test_split
-from src.utils import load_params
+from data_pipelines.src.utils import load_params
 
 # ---------------- Logging ----------------
 LOG_DIR = "logs"

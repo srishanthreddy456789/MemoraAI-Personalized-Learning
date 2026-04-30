@@ -7,10 +7,10 @@ from sklearn.model_selection import train_test_split
 # ---------------- Path Fix ----------------
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from src.utils import load_params          # ✅ correct import
-from src.data_preprocessing import preprocess
-from src.feature_engineering import create_features
-from src.model_building import train_model
+from data_pipelines.src.utils import load_params          # ✅ correct import
+from data_pipelines.src.data_preprocessing import preprocess
+from data_pipelines.src.feature_engineering import create_features
+from data_pipelines.src.model_building import train_model
 
 # ---------------- Logging ----------------
 LOG_DIR = "logs"

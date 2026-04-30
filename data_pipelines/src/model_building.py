@@ -2,7 +2,7 @@ import mlflow
 import mlflow.sklearn
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score
-from src.utils import load_params
+from data_pipelines.src.utils import load_params
 import os
 
 def train_model(X_train, y_train, X_test, y_test):
