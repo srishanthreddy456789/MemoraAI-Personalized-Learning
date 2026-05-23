@@ -1,12 +1,16 @@
+# Backend Python dependencies
+# ✅ FIXED: Corrected 'bcr' to 'bcrypt', added python-dotenv and cryptography
+
 fastapi
-uvicorn
+uvicorn[standard]
 pydantic
 numpy
 pandas
 scikit-learn
 joblib
 python-multipart
-python-jose
-passlib
+python-jose[cryptography]
+passlib[bcrypt]
 bcrypt
-requests
+python-dotenv
+cryptography

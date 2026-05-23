@@ -1,25 +1,61 @@
+# =====================================================================
+# .gitignore - Root level
+# =====================================================================
+
 # Python
 __pycache__/
-*.pyc
-*.pyo
-*.pyd
-*.sqlite3
-*.db
-.env
-.venv/
-
-# FastAPI logs
-*.log
-
-# Node / Next
-node_modules/
-.next/
-out/
+*.py[cod]
+*$py.class
+*.so
+*.egg
+*.egg-info/
+dist/
 build/
+.eggs/
+.venv/
+venv/
+env/
 
-# OS
+# Environment files - NEVER commit these
+.env
+.env.local
+.env.production
+.env.development
+backend/.env
+
+# SQLite database (runtime data, not source)
+*.db
+*.sqlite3
+memory.db
+
+# Node
+node_modules/
+.npm
+
+# Build outputs
+frontend/.next/
+frontend/dist/
+frontend/out/
+frontend/.vercel/
+
+# Testing
+.coverage
+htmlcov/
+.pytest_cache/
+coverage/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
 .DS_Store
 Thumbs.db
 
-# Ollama
-.ollama/
+# Logs
+*.log
+logs/
+
+# MLflow / DVC
+mlflow.db
+artifacts/

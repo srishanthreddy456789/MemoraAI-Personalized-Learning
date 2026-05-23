@@ -1,3 +1,4 @@
+import os
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from passlib.context import CryptContext
@@ -7,8 +8,11 @@ from ..db.database import get_connection
 
 router = APIRouter()
 
-SECRET_KEY = "MEMORAAI_SUPER_SECRET"
+# ✅ FIXED: Read SECRET_KEY from environment variable for security
+# Set JWT_SECRET_KEY in your Render environment variables
+SECRET_KEY = os.environ.get("JWT_SECRET_KEY", "MEMORAAI_SUPER_SECRET_CHANGE_IN_PRODUCTION")
 ALGORITHM = "HS256"
+ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24  # 24 hours
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -40,12 +44,11 @@ def verify_password(plain, hashed):
 # -----------------------------
 # JWT Token Creation
 # -----------------------------
-def create_token(user_id: int):
-    payload = {
-        "user_id": user_id,
-        "exp": datetime.utcnow() + timedelta(days=7)
-    }
-    return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
+def create_access_token(data: dict):
+    to_encode = data.copy()
+    expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    to_encode.update({"exp": expire})
+    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
 
 # -----------------------------
@@ -53,24 +56,21 @@ def create_token(user_id: int):
 # -----------------------------
 @router.post("/register")
 def register(user: UserCreate):
-
     conn = get_connection()
     cursor = conn.cursor()
-
     try:
         hashed = hash_password(user.password)
-
         cursor.execute(
             "INSERT INTO users (email, password) VALUES (?, ?)",
             (user.email, hashed)
         )
-
         conn.commit()
-        return {"message": "User created successfully"}
-
-    except Exception:
-        raise HTTPException(status_code=400, detail="User already exists")
-
+        return {"message": "User registered successfully"}
+    except Exception as e:
+        conn.rollback()
+        if "UNIQUE constraint failed" in str(e):
+            raise HTTPException(status_code=400, detail="Email already registered")
+        raise HTTPException(status_code=500, detail="Registration failed")
     finally:
         cursor.close()
         conn.close()
@@ -81,29 +81,23 @@ def register(user: UserCreate):
 # -----------------------------
 @router.post("/login")
 def login(user: UserLogin):
-
     conn = get_connection()
     cursor = conn.cursor()
-
     try:
         cursor.execute(
             "SELECT id, password FROM users WHERE email=?",
             (user.email,)
         )
         row = cursor.fetchone()
-
         if not row:
-            raise HTTPException(status_code=400, detail="Invalid credentials")
+            raise HTTPException(status_code=401, detail="Invalid email or password")
 
-        user_id, hashed_password = row
+        user_id, hashed = row
+        if not verify_password(user.password, hashed):
+            raise HTTPException(status_code=401, detail="Invalid email or password")
 
-        if not verify_password(user.password, hashed_password):
-            raise HTTPException(status_code=400, detail="Invalid credentials")
-
-        token = create_token(user_id)
-
-        return {"access_token": token}
-
+        token = create_access_token({"sub": str(user_id)})
+        return {"access_token": token, "token_type": "bearer"}
     finally:
         cursor.close()
         conn.close()

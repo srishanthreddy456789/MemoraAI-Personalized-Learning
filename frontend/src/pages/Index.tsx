@@ -25,6 +25,9 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
+// ✅ FIXED: Import API_BASE from centralized config instead of hardcoded localhost
+import { API_BASE } from "@/lib/api";
+
 const Index = () => {
   const navigate = useNavigate();
 
@@ -39,47 +42,48 @@ const Index = () => {
   const [dark, setDark] = useState(true);
 
   // ---------------- AUTH GUARD ----------------
-useEffect(() => {
-  const token = localStorage.getItem("token");
+  useEffect(() => {
+    const token = localStorage.getItem("token");
 
-  if (!token) {
-    navigate("/login", { replace: true });
-    return;
-  }
-
-  // Optional: verify token with backend
-  fetch("http://127.0.0.1:8000/health")
-    .catch(() => {
-      localStorage.removeItem("token");
+    if (!token) {
       navigate("/login", { replace: true });
-    });
+      return;
+    }
 
-}, [navigate]);
-
-  // ---------------- FETCH SESSIONS ----------------
-useEffect(() => {
-  const fetchSessions = async () => {
-    try {
-      const token = localStorage.getItem("token");
-
-      const res = await fetch("http://127.0.0.1:8000/sessions", {
-        headers: { Authorization: `Bearer ${token}` },
+    // ✅ FIXED: Use API_BASE env variable instead of hardcoded localhost
+    fetch(`${API_BASE}/health`)
+      .catch(() => {
+        localStorage.removeItem("token");
+        navigate("/login", { replace: true });
       });
 
-      if (!res.ok) throw new Error("Session fetch failed");
+  }, [navigate]);
 
-      const data = await res.json();
-      setSessions(data);
+  // ---------------- FETCH SESSIONS ----------------
+  useEffect(() => {
+    const fetchSessions = async () => {
+      try {
+        const token = localStorage.getItem("token");
 
-    } catch (err) {
-      console.error("Session error:", err);
-      localStorage.removeItem("token");
-      navigate("/login");
-    }
-  };
+        // ✅ FIXED: Use API_BASE env variable instead of hardcoded localhost
+        const res = await fetch(`${API_BASE}/sessions`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
 
-  fetchSessions();
-}, [navigate]);
+        if (!res.ok) throw new Error("Session fetch failed");
+
+        const data = await res.json();
+        setSessions(data);
+
+      } catch (err) {
+        console.error("Session error:", err);
+        localStorage.removeItem("token");
+        navigate("/login");
+      }
+    };
+
+    fetchSessions();
+  }, [navigate]);
 
   // ---------------- DARK MODE ----------------
   useEffect(() => {
@@ -98,8 +102,9 @@ useEffect(() => {
     try {
       const token = localStorage.getItem("token");
 
+      // ✅ FIXED: Use API_BASE env variable instead of hardcoded localhost
       const response = await fetch(
-        "http://127.0.0.1:8000/chat",
+        `${API_BASE}/chat`,
         {
           method: "POST",
           headers: {
@@ -139,292 +144,216 @@ useEffect(() => {
       ]);
 
       setMessageInput("");
-    } catch (error) {
-      console.error("Send error:", error);
+
+    } catch (err) {
+      console.error("Chat error:", err);
     }
   };
 
-  // ---------------- LOAD SESSION ----------------
-  const loadSession = async (sessionId: string) => {
-    try {
-      const token = localStorage.getItem("token");
-
-      const res = await fetch(
-        `http://127.0.0.1:8000/sessions/${sessionId}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      if (!res.ok) return;
-
-      const data = await res.json();
-
-      setCurrentSessionId(sessionId);
-      setActiveChatId(sessionId);
-      setMessages(Array.isArray(data.messages) ? data.messages : []);
-    } catch (err) {
-      console.error("Session load error:", err);
-    }
+  // ---------------- LOGOUT ----------------
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("email");
+    navigate("/login");
   };
 
   // ---------------- NEW CHAT ----------------
-  const startNewChat = () => {
+  const handleNewChat = () => {
     setCurrentSessionId(null);
+    setMessages([]);
     setActiveChatId(null);
+    setMessageInput("");
+  };
+
+  // ---------------- SELECT SESSION ----------------
+  const handleSelectSession = (sessionId: string) => {
+    setActiveChatId(sessionId);
+    setCurrentSessionId(sessionId);
     setMessages([]);
   };
 
+  const userEmail = localStorage.getItem("email") || "User";
+
   return (
-    <div className="flex h-screen w-full overflow-hidden bg-background">
+    <div className={`h-screen flex overflow-hidden ${dark ? "bg-zinc-950 text-white" : "bg-white text-black"}`}>
       {/* Sidebar */}
-      <aside
-        className={`flex-shrink-0 flex flex-col border-r border-border bg-sidebar transition-all duration-300 ${
-          sidebarOpen ? "w-[280px]" : "w-0 overflow-hidden"
-        }`}
-      >
-        {/* Top */}
-        <div className="flex h-[60px] items-center justify-between border-b border-border px-5">
-          <div className="flex items-center gap-2.5">
-            <Brain
-              className="h-6 w-6 text-primary cursor-pointer"
-              onClick={startNewChat}
-            />
-            <span className="text-sm font-semibold text-foreground">
-              MemoryAI
-            </span>
-          </div>
-          <button
-            onClick={() => setSidebarOpen(false)}
-            className="rounded-md p-1.5 text-muted-foreground hover:bg-sidebar-accent"
-          >
-            <PanelLeftClose className="h-[18px] w-[18px]" />
-          </button>
-        </div>
-
-        {/* Middle */}
-        <div className="flex flex-col gap-3 border-b border-border p-4">
-          <button
-            onClick={startNewChat}
-            className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary/90"
-          >
-            <Plus className="h-4 w-4" />
-            New Chat
-          </button>
-
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <input
-              type="text"
-              placeholder="Search chats"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full rounded-lg border border-border bg-chat-input py-2 pl-9 pr-3 text-sm"
-            />
-          </div>
-        </div>
-
-        {/* Sessions List */}
-        <div className="flex-1 overflow-y-auto p-2">
-          {filteredChats.map((chat) => (
-            <button
-              key={chat.id}
-              onClick={() => loadSession(chat.id)}
-              className={`flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-left text-sm transition-colors ${
-                activeChatId === chat.id
-                  ? "bg-sidebar-accent"
-                  : "hover:bg-sidebar-accent/60"
-              }`}
-            >
-              <MessageSquare className="h-4 w-4 opacity-50" />
-              <span className="truncate">{chat.title}</span>
+      {sidebarOpen && (
+        <div className={`w-64 flex flex-col border-r ${dark ? "bg-zinc-900 border-zinc-800" : "bg-gray-50 border-gray-200"}`}>
+          {/* Sidebar Header */}
+          <div className="flex items-center justify-between p-4 border-b border-zinc-800">
+            <div className="flex items-center gap-2">
+              <Brain size={20} className="text-purple-400" />
+              <span className="font-semibold text-sm">MemoraAI</span>
+            </div>
+            <button onClick={() => setSidebarOpen(false)} className="text-zinc-400 hover:text-white transition">
+              <PanelLeftClose size={16} />
             </button>
-          ))}
-        </div>
+          </div>
 
-        {/* User Section */}
-        <div className="border-t border-border p-3">
-          <button
-            onClick={() => {
-              localStorage.removeItem("token");
-              navigate("/login");
-            }}
-            className="flex items-center gap-2 text-sm text-destructive"
-          >
-            <LogOut className="h-4 w-4" />
-            Log Out
-          </button>
-        </div>
-      </aside>
+          {/* New Chat Button */}
+          <div className="p-3">
+            <button
+              onClick={handleNewChat}
+              className="w-full flex items-center gap-2 px-3 py-2 rounded-lg bg-purple-600 hover:bg-purple-700 text-white text-sm font-medium transition"
+            >
+              <Plus size={16} />
+              New Chat
+            </button>
+          </div>
 
-      {/* Main Content */}
-      <div className="flex flex-1 flex-col">
-        <header className="flex h-[60px] items-center border-b border-border px-5">
-  {!sidebarOpen && (
-    <button
-      onClick={() => setSidebarOpen(true)}
-      className="mr-4 rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
-    >
-      <PanelLeft className="h-[18px] w-[18px]" />
-    </button>
-  )}
+          {/* Search */}
+          <div className="px-3 pb-3">
+            <div className="flex items-center gap-2 px-3 py-2 bg-zinc-800 rounded-lg">
+              <Search size={14} className="text-zinc-400" />
+              <input
+                type="text"
+                placeholder="Search chats..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="bg-transparent text-sm text-white placeholder-zinc-400 outline-none w-full"
+              />
+            </div>
+          </div>
 
-  <h1 className="text-base font-semibold text-foreground">
-    MemoryAI
-  </h1>
-
-  <div className="ml-auto flex items-center gap-1">
-    {/* 🌙 Dark Mode Toggle */}
-    <button
-  onClick={() => setDark(!dark)}
-  className="relative rounded-md p-1.5 text-muted-foreground transition-all duration-300 hover:bg-secondary hover:text-foreground"
->
-  <div
-    className={`transition-transform duration-500 ${
-      dark ? "rotate-180 scale-110" : "rotate-0"
-    }`}
-  >
-    {dark ? (
-      <Sun className="h-[18px] w-[18px]" />
-    ) : (
-      <Moon className="h-[18px] w-[18px]" />
-    )}
-  </div>
-</button>
-     
-    {/* ⚙️ Settings Dropdown */}
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <button className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground">
-          <Settings className="h-[18px] w-[18px]" />
-        </button>
-      </DropdownMenuTrigger>
-
-      <DropdownMenuContent align="end" className="w-48">
-        <div className="px-3 py-2 border-b border-border">
-  <p className="text-sm font-medium text-foreground">
-    {localStorage.getItem("email") || "user@email.com"}
-  </p>
-  <p className="text-xs text-muted-foreground">
-    Logged in
-  </p>
-</div>
-        <DropdownMenuItem
-          className="gap-2 cursor-pointer"
-          onClick={startNewChat}
-        >
-          <Plus className="h-4 w-4" /> New Chat
-        </DropdownMenuItem>
-
-        <DropdownMenuSeparator />
-
-        <DropdownMenuItem className="gap-2 cursor-pointer">
-          <UserCircle className="h-4 w-4" /> Account Details
-        </DropdownMenuItem>
-
-        <DropdownMenuItem className="gap-2 cursor-pointer">
-          <UserRoundCog className="h-4 w-4" /> Switch Account
-        </DropdownMenuItem>
-
-        <DropdownMenuSeparator />
-
-        <DropdownMenuItem className="gap-2 cursor-pointer">
-          <HelpCircle className="h-4 w-4" /> Help
-        </DropdownMenuItem>
-
-        <DropdownMenuSeparator />
-
-        <DropdownMenuItem
-          className="gap-2 cursor-pointer text-destructive"
-          onClick={() => {
-            localStorage.removeItem("token");
-            navigate("/login");
-          }}
-        >
-          <LogOut className="h-4 w-4" /> Log Out
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
-    <div className="flex items-center gap-3 ml-3">
-  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/20 text-primary text-sm font-semibold">
-    {localStorage.getItem("email")?.charAt(0).toUpperCase() || "U"}
-  </div>
-</div>
-  </div>
-</header>
-
-        {/* Chat Area */}
-        <div className="flex-1 overflow-y-auto">
-            {messages.length === 0 ? (
-              <div className="flex h-full items-center justify-center">
-                <div className="flex flex-col items-center text-center space-y-4">
-                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10">
-                    <Brain className="h-7 w-7 text-primary" />
-                  </div>
-
-                  <h2 className="text-2xl font-semibold text-foreground">
-                    How can I help you today?
-                  </h2>
-
-                  <p className="text-sm text-muted-foreground max-w-md">
-                    Ask me anything — I'm here to assist with code, ideas, and more.
-                  </p>
-                </div>
-              </div>
+          {/* Sessions List */}
+          <div className="flex-1 overflow-y-auto px-2 space-y-1">
+            {filteredChats.length === 0 ? (
+              <p className="text-xs text-zinc-500 text-center py-4">No sessions yet</p>
             ) : (
-              <div className="mx-auto flex max-w-3xl flex-col px-6 py-6 space-y-4">
-              {messages.map((msg, index) => (
-                <div
-                  key={index}
-                  className={`flex ${
-                    msg.role === "student"
-                      ? "justify-end"
-                      : "justify-start"
+              filteredChats.map((chat) => (
+                <button
+                  key={chat.id}
+                  onClick={() => handleSelectSession(chat.id)}
+                  className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-left transition ${
+                    activeChatId === chat.id
+                      ? "bg-zinc-700 text-white"
+                      : "text-zinc-400 hover:bg-zinc-800 hover:text-white"
                   }`}
                 >
-                  <div
-                    className={`max-w-md rounded-2xl px-4 py-2 text-sm ${
-                      msg.role === "student"
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-secondary"
-                    }`}
-                  >
-                    {msg.content}
-                  </div>
-                </div>
-              ))}
+                  <MessageSquare size={14} />
+                  <span className="truncate">{chat.title || "Untitled Chat"}</span>
+                </button>
+              ))
+            )}
+          </div>
+
+          {/* Footer */}
+          <div className="p-3 border-t border-zinc-800">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-zinc-800 transition text-left">
+                  <UserCircle size={20} className="text-zinc-400 flex-shrink-0" />
+                  <span className="text-sm text-zinc-300 truncate flex-1">{userEmail}</span>
+                  <MoreHorizontal size={14} className="text-zinc-500" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent side="top" className="w-48 bg-zinc-800 border-zinc-700">
+                <DropdownMenuItem className="text-zinc-300 hover:text-white focus:bg-zinc-700">
+                  <UserRoundCog size={14} className="mr-2" />
+                  Profile
+                </DropdownMenuItem>
+                <DropdownMenuItem className="text-zinc-300 hover:text-white focus:bg-zinc-700">
+                  <Settings size={14} className="mr-2" />
+                  Settings
+                </DropdownMenuItem>
+                <DropdownMenuItem className="text-zinc-300 hover:text-white focus:bg-zinc-700">
+                  <HelpCircle size={14} className="mr-2" />
+                  Help
+                </DropdownMenuItem>
+                <DropdownMenuSeparator className="bg-zinc-700" />
+                <DropdownMenuItem
+                  onClick={handleLogout}
+                  className="text-red-400 hover:text-red-300 focus:bg-zinc-700 cursor-pointer"
+                >
+                  <LogOut size={14} className="mr-2" />
+                  Logout
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        </div>
+      )}
+
+      {/* Main Chat Area */}
+      <div className="flex-1 flex flex-col">
+        {/* Top Bar */}
+        <div className={`flex items-center justify-between px-4 py-3 border-b ${dark ? "border-zinc-800" : "border-gray-200"}`}>
+          {!sidebarOpen && (
+            <button onClick={() => setSidebarOpen(true)} className="text-zinc-400 hover:text-white transition mr-3">
+              <PanelLeft size={18} />
+            </button>
+          )}
+          <div className="flex items-center gap-2">
+            <Brain size={20} className="text-purple-400" />
+            <span className="font-semibold">MemoraAI</span>
+          </div>
+          <button
+            onClick={() => setDark(!dark)}
+            className="text-zinc-400 hover:text-white transition"
+          >
+            {dark ? <Sun size={18} /> : <Moon size={18} />}
+          </button>
+        </div>
+
+        {/* Messages */}
+        <div className="flex-1 overflow-y-auto p-6 space-y-4">
+          {messages.length === 0 ? (
+            <div className="h-full flex flex-col items-center justify-center text-center space-y-4">
+              <Brain size={48} className="text-purple-400 opacity-60" />
+              <div>
+                <h2 className="text-2xl font-semibold text-zinc-300">Welcome to MemoraAI</h2>
+                <p className="text-zinc-500 mt-1 text-sm">Your personalized AI tutor. Ask me anything to start learning.</p>
+              </div>
             </div>
+          ) : (
+            messages.map((msg, i) => (
+              <div
+                key={i}
+                className={`flex ${msg.role === "student" ? "justify-end" : "justify-start"}`}
+              >
+                <div
+                  className={`max-w-2xl px-4 py-3 rounded-2xl text-sm leading-relaxed ${
+                    msg.role === "student"
+                      ? "bg-purple-600 text-white"
+                      : dark
+                      ? "bg-zinc-800 text-zinc-100"
+                      : "bg-gray-100 text-gray-800"
+                  }`}
+                >
+                  {msg.content}
+                </div>
+              </div>
+            ))
           )}
         </div>
 
-        {/* Input */}
-        <div className="px-6 pb-6 pt-2">
-              <div className="mx-auto max-w-3xl">
-                <div className="flex items-end gap-3 rounded-2xl border border-chat-input-border bg-chat-input p-3 shadow-lg shadow-[hsl(var(--chat-float-shadow))]">
+        {/* Message Input */}
+        <div className={`p-4 border-t ${dark ? "border-zinc-800" : "border-gray-200"}`}>
+          <div className={`flex items-end gap-3 rounded-2xl border px-4 py-3 ${dark ? "bg-zinc-900 border-zinc-700" : "bg-gray-50 border-gray-300"}`}>
             <textarea
-                rows={1}
-                placeholder="Message MemoryAI..."
-                value={messageInput}
-                onChange={(e) => setMessageInput(e.target.value)}
-                onInput={(e) => {
-                  const target = e.target as HTMLTextAreaElement;
-                  target.style.height = "auto";
-                  target.style.height = Math.min(target.scrollHeight, 160) + "px";
-                }}
-                className="flex-1 resize-none bg-transparent py-1.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
-              />
-
-              <button
-                onClick={sendMessage}
-                disabled={!messageInput.trim()}
-                className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-40"
-              >
-                <Send className="h-4 w-4" />
-              </button>
+              value={messageInput}
+              onChange={(e) => setMessageInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  sendMessage();
+                }
+              }}
+              placeholder="Ask MemoraAI anything..."
+              rows={1}
+              className="flex-1 bg-transparent text-sm resize-none outline-none placeholder-zinc-500"
+            />
+            <button
+              onClick={sendMessage}
+              disabled={!messageInput.trim()}
+              className="flex-shrink-0 p-2 rounded-xl bg-purple-600 hover:bg-purple-700 disabled:bg-zinc-700 disabled:cursor-not-allowed text-white transition"
+            >
+              <Send size={16} />
+            </button>
           </div>
-        </div>
+          <p className="text-center text-xs text-zinc-600 mt-2">
+            MemoraAI can make mistakes. Double-check important information.
+          </p>
         </div>
       </div>
     </div>
