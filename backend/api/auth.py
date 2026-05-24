@@ -70,7 +70,8 @@ def register(user: UserCreate):
         conn.rollback()
         if "UNIQUE constraint failed" in str(e):
             raise HTTPException(status_code=400, detail="Email already registered")
-        raise HTTPException(status_code=500, detail="Registration failed")
+        # Return full error detail for debugging
+        raise HTTPException(status_code=500, detail=f"Registration failed: {type(e).__name__}: {str(e)}")
     finally:
         cursor.close()
         conn.close()
