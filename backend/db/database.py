@@ -1,6 +1,9 @@
 import sqlite3
+import os
 
-DB_NAME = "memory.db"
+# ✅ FIXED: Use absolute path so DB persists in a known location on Render
+DB_NAME = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "memory.db")
+
 
 def get_connection():
     conn = sqlite3.connect(
@@ -8,12 +11,13 @@ def get_connection():
         check_same_thread=False,
         timeout=10
     )
-    conn.execute("PRAGMA journal_mode=WAL;")  # 🔥 enables better concurrency
+    conn.execute("PRAGMA journal_mode=WAL;")
+    conn.row_factory = sqlite3.Row
     return conn
+
 
 def init_db():
     print("Initializing DB...")
-
     conn = get_connection()
     cursor = conn.cursor()
 
@@ -31,10 +35,10 @@ def init_db():
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS sessions (
         id TEXT PRIMARY KEY,
-        user_id INTEGER,
-        title TEXT,
+        user_id INTEGER NOT NULL,
+        title TEXT DEFAULT 'New Chat',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY(user_id) REFERENCES users(id)
+        FOREIGN KEY (user_id) REFERENCES users(id)
     )
     """)
 
@@ -42,11 +46,11 @@ def init_db():
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS messages (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        session_id TEXT,
-        role TEXT,
-        content TEXT,
+        session_id TEXT NOT NULL,
+        role TEXT NOT NULL,
+        content TEXT NOT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY(session_id) REFERENCES sessions(id)
+        FOREIGN KEY (session_id) REFERENCES sessions(id)
     )
     """)
 
@@ -54,47 +58,16 @@ def init_db():
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS topics (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        session_id TEXT,
-        topic TEXT,
+        session_id TEXT NOT NULL,
+        topic TEXT NOT NULL,
         mastery_score REAL DEFAULT 0.5,
         revision_count INTEGER DEFAULT 0,
-        last_reviewed TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        forgetting_probability REAL DEFAULT 0.5,
-        FOREIGN KEY(session_id) REFERENCES sessions(id)
+        last_revised TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (session_id) REFERENCES sessions(id)
     )
     """)
-
-    # ---------------- QUIZZES ----------------
-    cursor.execute("""
-    CREATE TABLE IF NOT EXISTS quizzes (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        session_id TEXT,
-        topic TEXT,
-        question TEXT,
-        correct_answer TEXT,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY(session_id) REFERENCES sessions(id)
-    )
-    """)
-
-    # ---------------- QUIZ RESULTS ----------------
-    cursor.execute("""
-    CREATE TABLE IF NOT EXISTS quiz_results (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        quiz_id INTEGER,
-        topic TEXT,
-        user_answer TEXT,
-        is_correct INTEGER,
-        timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (quiz_id) REFERENCES quizzes(id)
-    )
-    """)
-
-    # Indexes
-    cursor.execute("CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id)")
-    cursor.execute("CREATE INDEX IF NOT EXISTS idx_topic_name ON topics(topic)")
-    cursor.execute("CREATE INDEX IF NOT EXISTS idx_quiz_id ON quiz_results(quiz_id)")
 
     conn.commit()
     cursor.close()
     conn.close()
+    print("DB initialized successfully.")

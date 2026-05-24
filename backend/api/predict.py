@@ -13,16 +13,14 @@ class PredictRequest(BaseModel):
 
 @router.post("/predict")
 def predict(request: PredictRequest):
-
+    """Predict whether a topic is a weakness based on study features."""
     features = {
         "last_studied_days": request.last_studied_days,
         "revision_count": request.revision_count,
-        "quiz_score": request.quiz_score
+        "quiz_score": request.quiz_score,
     }
-
-    prediction = predict_weakness(features)
-
+    result = predict_weakness(features)
     return {
-        "input_features": features,
-        "prediction": prediction
+        "prediction": result,
+        "is_weak": bool(result[0] == 1)
     }

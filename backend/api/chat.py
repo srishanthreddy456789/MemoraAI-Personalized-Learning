@@ -1,214 +1,130 @@
 import uuid
+import math
 from typing import Optional
 from datetime import datetime
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
 from ..ml.predictor import predict_weakness
-from ..genai.teacher import teacher_reply
+from ..genai.teacher import teacher_reply, extract_topic
 from ..db.database import get_connection
-import math
-from fastapi import Depends, HTTPException
 from ..utils.dependencies import get_current_user
 
-def forgetting_probability(days_since, mastery_score, revision_count):
-
-    # Dynamic decay: weak topics decay faster
-    decay_rate = 0.1 + (0.2 * (1 - mastery_score))
-
-    # Stability floor
-    stability = max(0.5, revision_count * mastery_score)
-
-    # Time decay
-    time_decay = math.exp(-decay_rate * days_since)
-
-    # Mastery reduces forgetting risk
-    adaptive_factor = (1 - mastery_score)
-
-    return time_decay * adaptive_factor
-
 router = APIRouter()
+
+
+def forgetting_probability(days_since: float, mastery_score: float, revision_count: int) -> float:
+    """Ebbinghaus-inspired forgetting curve with mastery adjustment."""
+    decay_rate = 0.1 + (0.2 * (1 - mastery_score))
+    stability = max(0.5, revision_count * mastery_score)
+    time_decay = math.exp(-decay_rate * days_since / stability)
+    adaptive_factor = (1 - mastery_score)
+    return time_decay * adaptive_factor
 
 
 class ChatRequest(BaseModel):
     session_id: Optional[str] = None
     message: str
 
-@router.post("/quiz")
-def quiz(request: ChatRequest, user_id: int = Depends(get_current_user)):
 
-    from ..genai.teacher import generate_quiz, extract_topic
-
-    conn = get_connection()
-    cursor = conn.cursor()
-
-    topic = extract_topic(request.message)
-
-    # 🔐 Verify session ownership
-    cursor.execute(
-        "SELECT id FROM sessions WHERE id=? AND user_id=?",
-        (request.session_id, user_id)
-    )
-    if not cursor.fetchone():
-        cursor.close()
-        conn.close()
-        raise HTTPException(status_code=403, detail="Unauthorized session access")
-
-    # 🔐 Secure mastery fetch
-    cursor.execute("""
-        SELECT t.mastery_score
-        FROM topics t
-        JOIN sessions s ON t.session_id = s.id
-        WHERE t.session_id=? AND t.topic=? AND s.user_id=?
-    """, (request.session_id, topic, user_id))
-
-    row = cursor.fetchone()
-    mastery = row[0] if row else 0.5
-
-    question, answer = generate_quiz(topic, mastery)
-
-    cursor.execute(
-        "INSERT INTO quizzes (session_id, topic, question, correct_answer) VALUES (?, ?, ?, ?)",
-        (request.session_id, topic, question, answer)
-    )
-
-    quiz_id = cursor.lastrowid
-    conn.commit()
-
-    cursor.close()
-    conn.close()
-
-    return {
-        "quiz_id": quiz_id,
-        "session_id": request.session_id,
-        "quiz": question
-    }
 @router.post("/chat")
 def chat(request: ChatRequest, user_id: int = Depends(get_current_user)):
+    """Handle a chat message from the student."""
     conn = get_connection()
     cursor = conn.cursor()
 
     try:
         session_id = request.session_id
-        message = request.message
 
-        # -----------------------------
-        # Create session if needed
-        # -----------------------------
+        # ---------- Create new session if needed ----------
         if not session_id:
             session_id = str(uuid.uuid4())
+            title = request.message[:40].strip()
             cursor.execute(
                 "INSERT INTO sessions (id, user_id, title) VALUES (?, ?, ?)",
-                (session_id, user_id, message[:30])
+                (session_id, user_id, title)
             )
+            conn.commit()
+        else:
+            # Verify session ownership
+            cursor.execute(
+                "SELECT id FROM sessions WHERE id=? AND user_id=?",
+                (session_id, user_id)
+            )
+            if not cursor.fetchone():
+                raise HTTPException(status_code=403, detail="Unauthorized session access")
 
+        # ---------- Fetch chat history ----------
         cursor.execute(
-            "SELECT id FROM sessions WHERE id=?",
+            "SELECT role, content FROM messages WHERE session_id=? ORDER BY created_at ASC",
             (session_id,)
         )
-        if not cursor.fetchone():
-            raise HTTPException(status_code=404, detail="Session not found")
+        history = [{"role": row[0], "content": row[1]} for row in cursor.fetchall()]
 
-        # -----------------------------
-        # Load chat history
-        # -----------------------------
+        # ---------- Get weak topics ----------
         cursor.execute(
-            """SELECT m.role, m.content 
-               FROM messages m 
-               JOIN sessions s ON m.session_id = s.id 
-               WHERE m.session_id=? AND s.user_id=?""",
-            (session_id, user_id)
+            "SELECT topic FROM topics WHERE session_id=? AND mastery_score < 0.5",
+            (session_id,)
         )
-        history = [{"role": r, "content": c} for r, c in cursor.fetchall()]
+        weak_topics = [row[0] for row in cursor.fetchall()]
 
-        # -----------------------------
-        # Topic Tracking
-        # -----------------------------
-        from ..genai.teacher import extract_topic, generate_quiz
-        topic = extract_topic(message)
+        # ---------- Generate AI reply ----------
+        reply = teacher_reply(request.message, history, weak_topics)
 
-        cursor.execute(
-            """SELECT t.revision_count, t.last_reviewed, t.mastery_score 
-               FROM topics t 
-               JOIN sessions s ON t.session_id = s.id 
-               WHERE t.session_id=? AND t.topic=? AND s.user_id=?""",
-            (session_id, topic, user_id)
-        )
-
-        row = cursor.fetchone()
-
-        if row:
-            revision_count, last_reviewed, mastery_score = row
-            last_reviewed = datetime.fromisoformat(last_reviewed)
-
-            cursor.execute(
-                """UPDATE topics 
-                   SET revision_count = revision_count + 1,
-                       last_reviewed = CURRENT_TIMESTAMP
-                   WHERE session_id=? AND topic=?""",
-                (session_id, topic)
-            )
-        else:
-            revision_count = 1
-            mastery_score = 0.5
-            last_reviewed = datetime.now()
-
-            cursor.execute(
-                "INSERT INTO topics (session_id, topic) VALUES (?, ?)",
-                (session_id, topic)
-            )
-
-        # -----------------------------
-        # ML + Forgetting
-        # -----------------------------
-        days_since = (datetime.now() - last_reviewed).days
-        forget_prob = forgetting_probability(days_since, mastery_score, revision_count)
-
-        features = {
-            "last_studied_days": days_since,
-            "revision_count": revision_count,
-            "quiz_score": 0.5
-        }
-
-        weak_topics = predict_weakness(features)
-
-        auto_quiz = None
-        if forget_prob < 0.4:
-            question, answer = generate_quiz(topic, mastery_score)
-
-            cursor.execute(
-                "INSERT INTO quizzes (session_id, topic, question, correct_answer) VALUES (?, ?, ?, ?)",
-                (session_id, topic, question, answer)
-            )
-
-            auto_quiz = question
-
-        # -----------------------------
-        # GenAI Reply
-        # -----------------------------
-        reply = teacher_reply(message, history, weak_topics)
-
+        # ---------- Save messages ----------
         cursor.execute(
             "INSERT INTO messages (session_id, role, content) VALUES (?, ?, ?)",
-            (session_id, "student", message)
+            (session_id, "student", request.message)
         )
         cursor.execute(
             "INSERT INTO messages (session_id, role, content) VALUES (?, ?, ?)",
             (session_id, "teacher", reply)
         )
 
-        # ✅ ONLY ONE COMMIT HERE
+        # ---------- Update topic mastery ----------
+        topic = extract_topic(request.message)
+        cursor.execute(
+            "SELECT id, mastery_score, revision_count FROM topics WHERE session_id=? AND topic=?",
+            (session_id, topic)
+        )
+        existing = cursor.fetchone()
+
+        if existing:
+            topic_id, mastery, revisions = existing
+            # Predict whether this is still a weakness
+            features = {
+                "last_studied_days": 0,
+                "revision_count": revisions + 1,
+                "quiz_score": mastery
+            }
+            is_weak = predict_weakness(features)[0] == 1
+            new_mastery = max(0.1, mastery + (0.05 if not is_weak else -0.02))
+
+            cursor.execute(
+                """UPDATE topics SET mastery_score=?, revision_count=?, last_revised=?
+                   WHERE id=?""",
+                (new_mastery, revisions + 1, datetime.utcnow(), topic_id)
+            )
+        else:
+            cursor.execute(
+                "INSERT INTO topics (session_id, topic, mastery_score, revision_count) VALUES (?, ?, ?, ?)",
+                (session_id, topic, 0.5, 1)
+            )
+
         conn.commit()
 
         return {
-            "session_id": session_id,
             "reply": reply,
-            "weak_topics": weak_topics,
-            "auto_quiz": auto_quiz,
-            "forgetting_probability": forget_prob
+            "session_id": session_id,
+            "topic": topic
         }
 
+    except HTTPException:
+        raise
+    except Exception as e:
+        conn.rollback()
+        raise HTTPException(status_code=500, detail=f"Chat error: {str(e)}")
     finally:
         cursor.close()
         conn.close()

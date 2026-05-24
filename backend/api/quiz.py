@@ -1,136 +1,61 @@
-from fastapi import APIRouter, HTTPException
+from typing import Optional
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
-from datetime import datetime
 from ..db.database import get_connection
-import re
-from fastapi import Depends
+from ..genai.teacher import generate_quiz, extract_topic
 from ..utils.dependencies import get_current_user
+
 router = APIRouter()
 
-# ---------------- Request Schema ----------------
 
-class QuizSubmitRequest(BaseModel):
-    quiz_id: int
-    user_answer: str
-
-
-# ---------------- Text Normalization ----------------
-
-def normalize(text: str):
-    text = text.lower()
-    text = re.sub(r"[^\w\s]", "", text)
-    return text.strip()
+class QuizRequest(BaseModel):
+    session_id: Optional[str] = None
+    message: str
 
 
-# ---------------- Intelligent Comparison ----------------
-
-def is_answer_correct(user_answer: str, correct_answer: str) -> bool:
-    ua = normalize(user_answer)
-    ca = normalize(correct_answer)
-
-    if ua == ca:
-        return True
-
-    if ua in ca or ca in ua:
-        return True
-
-    ua_tokens = set(ua.split())
-    ca_tokens = set(ca.split())
-
-    if not ca_tokens:
-        return False
-
-    overlap_ratio = len(ua_tokens & ca_tokens) / len(ca_tokens)
-
-    return overlap_ratio >= 0.6
-
-
-# ---------------- Mastery Update ----------------
-
-def update_mastery(current_score: float, correct: bool) -> float:
-    if correct:
-        new_score = current_score + 0.05
-    else:
-        new_score = current_score - 0.03
-
-    return max(0.0, min(1.0, new_score))
-
-
-# ---------------- Endpoint ----------------
-
-@router.post("/quiz/submit")
-def submit_quiz(payload: QuizSubmitRequest, user_id: int = Depends(get_current_user)):
+@router.post("/quiz")
+def quiz(request: QuizRequest, user_id: int = Depends(get_current_user)):
+    """Generate a quiz question for the given topic."""
     conn = get_connection()
     cursor = conn.cursor()
 
     try:
-        cursor.execute("""
-            SELECT q.topic, q.correct_answer
-            FROM quizzes q
-            JOIN sessions s ON q.session_id = s.id
-            WHERE q.id = ? AND s.user_id = ?
-        """, (payload.quiz_id, user_id))
-        quiz = cursor.fetchone()
+        topic = extract_topic(request.message)
 
-        if not quiz:
-            raise HTTPException(status_code=404, detail="Quiz not found")
+        if request.session_id:
+            # Verify session ownership
+            cursor.execute(
+                "SELECT id FROM sessions WHERE id=? AND user_id=?",
+                (request.session_id, user_id)
+            )
+            if not cursor.fetchone():
+                raise HTTPException(status_code=403, detail="Unauthorized session access")
 
-        topic, correct_answer = quiz
-        correct = is_answer_correct(payload.user_answer, correct_answer)
-
-        cursor.execute("""
-            INSERT INTO quiz_results (quiz_id, topic, user_answer, is_correct)
-            VALUES (?, ?, ?, ?)
-        """, (payload.quiz_id, topic, payload.user_answer, int(correct)))
-
-        cursor.execute("""
-            SELECT t.mastery_score, t.revision_count
-            FROM topics t
-            JOIN sessions s ON t.session_id = s.id
-            JOIN quizzes q ON q.session_id = s.id
-            WHERE q.id = ? AND s.user_id = ?
-        """, (payload.quiz_id, user_id))
-        topic_data = cursor.fetchone()
-
-        if not topic_data:
-            raise HTTPException(status_code=404, detail="Topic not found")
-
-        mastery_score, revision_count = topic_data
-
-        new_mastery = update_mastery(mastery_score, correct)
-        new_revision_count = revision_count + 1
-        now = datetime.utcnow()
-
-        cursor.execute("""
-            UPDATE topics
-            SET mastery_score = ?,
-                revision_count = ?,
-                last_reviewed = ?
-            WHERE id = (
-                SELECT t.id
+            # Get mastery score for this topic
+            cursor.execute("""
+                SELECT t.mastery_score
                 FROM topics t
                 JOIN sessions s ON t.session_id = s.id
-                JOIN quizzes q ON q.session_id = s.id
-                WHERE q.id = ? AND s.user_id = ?
-                LIMIT 1
-            )
-        """, (new_mastery, new_revision_count, now, payload.quiz_id, user_id))
+                WHERE t.session_id=? AND t.topic=? AND s.user_id=?
+            """, (request.session_id, topic, user_id))
 
-        conn.commit()
+            row = cursor.fetchone()
+            mastery_score = row[0] if row else 0.5
+        else:
+            mastery_score = 0.5
 
-        feedback = (
-            "✅ Correct! Your mastery improved."
-            if correct
-            else f"❌ Not quite. Correct answer: {correct_answer}"
-        )
+        quiz_content = generate_quiz(topic, mastery_score)
 
         return {
-            "is_correct": correct,
-            "mastery_score": new_mastery,
-            "revision_count": new_revision_count,
-            "feedback": feedback
+            "topic": topic,
+            "mastery_score": mastery_score,
+            "quiz": quiz_content
         }
 
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Quiz generation error: {str(e)}")
     finally:
         cursor.close()
         conn.close()
