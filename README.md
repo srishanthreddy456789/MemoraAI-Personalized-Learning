@@ -1,245 +1,241 @@
-# MemoraAI – Personalized Learning Platform
+<div align="center">
 
-MemoraAI is a **personalized learning system** that combines **Generative AI (GenAI)** with **Machine Learning (ML)** to help users learn, retain, and revise topics intelligently. The platform focuses on identifying what a user *forgets*, retraining models automatically using **MLOps**, and generating adaptive quizzes to improve long‑term retention.
+# 🧠 MemoraAI — Personalized Learning Assistant
 
-This project was built as a **full‑stack AI system** with authentication, chat-based learning, ML-driven performance prediction, and automated training pipelines.
+**An adaptive AI-powered tutor that learns with you.**
 
----
-##  WorkFlow
-<img src="image/workflow.png"/>
-##  Snapshot
- <h2>Frontend</h2>
-<img src="image/frontend.png"/>
-  <h2>Backend Endpoints</h2>
-<img src="image/backend.png"/>
-## 🚀 Key Features
+[![Live Demo](https://img.shields.io/badge/🚀_Live_Demo-Visit_App-7c3aed?style=for-the-badge)](https://memora-ai-personalized-learning.vercel.app/)
+[![Backend](https://img.shields.io/badge/⚡_Backend-Render-00d68f?style=for-the-badge)](https://memoraai-personalized-learning.onrender.com)
+[![GitHub](https://img.shields.io/badge/GitHub-Repository-181717?style=for-the-badge&logo=github)](https://github.com/srishanthreddy456789/MemoraAI-Personalized-Learning)
 
-
-* 🔐 **User Authentication** – Secure user registration and login
-* 💬 **GenAI Chat Interface** – Users learn topics through conversational AI
-* 🧠 **Forget-Topic Detection** – ML model identifies weak or forgotten topics
-* 📝 **Adaptive Quiz Generation** – Quizzes generated automatically based on learning gaps
-* 🔁 **Feedback Loop** – Quiz results improve future predictions
-* ⚙️ **Automated ML Training (MLOps)** – Models retrain on new learning data
-* 📊 **Session Tracking** – Tracks messages, sessions, and interaction patterns
+</div>
 
 ---
-## ▶️ Docker Images
 
-```bash
-# Backend
-docker pull srishanthreddy3110/memora-backend
+## 🌐 Live Deployment
 
-# Frontend
-docker pull srishanthreddy3110/memora-frontend
+| Service | URL |
+|---------|-----|
+| 🖥️ **Frontend** | [https://memora-ai-personalized-learning.vercel.app](https://memora-ai-personalized-learning.vercel.app/) |
+| ⚙️ **Backend API** | [https://memoraai-personalized-learning.onrender.com](https://memoraai-personalized-learning.onrender.com) |
+| 📖 **API Docs** | [https://memoraai-personalized-learning.onrender.com/docs](https://memoraai-personalized-learning.onrender.com/docs) |
+
+---
+
+## ✨ Features
+
+- 🤖 **AI-Powered Chat** — Adaptive tutor powered by Groq (Llama 3.3 70B)
+- 📚 **Personalized Learning** — Tracks your weak topics and adjusts difficulty
+- 🧪 **Quiz Generation** — Auto-generates MCQ quizzes based on your mastery level
+- 📈 **Forgetting Curve** — Uses Ebbinghaus spaced repetition to schedule revisions
+- 🔐 **JWT Authentication** — Secure login/register with token-based auth
+- 💾 **Session History** — All your conversations are saved and searchable
+- 🌙 **Dark/Light Mode** — Toggle between themes
+- 📱 **Responsive Design** — Works on desktop and mobile
+
+---
+
+## 🏗️ Architecture
+
+```
+Frontend (React + Vite)          Backend (FastAPI + Python)
+┌─────────────────────┐          ┌──────────────────────────┐
+│  Vercel (CDN)       │  HTTPS   │  Render (Web Service)    │
+│                     │ ──────── │                          │
+│  React + TypeScript │          │  FastAPI REST API        │
+│  React Router       │          │  SQLite Database         │
+│  TailwindCSS        │          │  JWT Authentication      │
+│  ShadCN UI          │          │  Groq LLM (Llama 3.3)    │
+│                     │          │  Scikit-learn ML         │
+└─────────────────────┘          └──────────────────────────┘
 ```
 
-## 🧠 How MemoraAI Works (Workflow)
-
-1. **User Registration & Login**
-
-   * User creates an account and logs in
-
-2. **Learning via Chat (GenAI)**
-
-   * User studies topics through a conversational GenAI interface
-   * Explanations adapt based on user responses
-
-3. **Data Collection**
-
-   * Messages
-   * Sessions
-   * Interaction patterns
-   * Quiz responses
-
-4. **ML Behavior Analysis**
-
-   * ML model analyzes user learning behavior
-   * Identifies weak / forgotten topics
-
-5. **Quiz Generation**
-
-   * GenAI generates quizzes based on forgotten concepts
-
-6. **Performance Prediction**
-
-   * ML predicts understanding and retention
-
-7. **Feedback Loop**
-
-   * Quiz results are stored
-   * Models retrain automatically using MLOps pipelines
-
 ---
 
-## 🧩 Tech Stack
+## 🚀 Tech Stack
 
 ### Frontend
-
-* React
-* Modern UI with chat-based interaction
+| Technology | Purpose |
+|-----------|---------|
+| React 18 + TypeScript | UI framework |
+| Vite | Build tool |
+| React Router v6 | Client-side routing |
+| TailwindCSS | Styling |
+| ShadCN UI | Component library |
+| Lucide React | Icons |
 
 ### Backend
-
-* FastAPI
-* REST APIs (Swagger/OpenAPI enabled)
-
-### AI & ML
-
-* Generative AI for explanations and quiz generation
-* Custom ML model for:
-
-  * Forget-topic prediction
-  * Performance estimation
-* Automated training using MLOps pipelines
-
-### Database
-
-* **SQLite**
-
-  * Stores users, sessions, messages, quizzes, and ML training data
-
-### DevOps / MLOps
-
-* Docker (local usage)
-* DVC for data versioning
-* Automated ML pipelines
-* MLFlow for Experiment Tracking
-* git for code versioning
-* CICD
+| Technology | Purpose |
+|-----------|---------|
+| FastAPI | REST API framework |
+| SQLite | Database (sessions, messages, topics) |
+| python-jose | JWT authentication |
+| passlib + bcrypt | Password hashing |
+| Groq SDK | AI chat (Llama 3.3 70B) |
+| Scikit-learn | Topic weakness prediction |
 
 ---
 
-## 📂 Project Structure
+## 🛠️ Local Development
 
-```
-MemoraAI-Personalized-Learning/
-│
-├── api/            # API layer
-├── backend/        # FastAPI backend
-├── frontend/       # React frontend
-├── models/         # ML models
-├── pipelines/      # MLOps training pipelines
-├── data/           # Training and interaction data
-├── mlruns/         # ML experiment tracking
-├── prompts/        # GenAI prompts
-├── docker/         # Docker configuration
-├── scripts/        # Utility scripts
-└── config/         # Configuration files
-```
+### Prerequisites
+- Node.js 18+
+- Python 3.11+
+- A free [Groq API key](https://console.groq.com)
 
----
-
-## 🧪 API Features (Swagger)
-
-* `/register` – User registration
-* `/login` – User login
-* `/chat` – Chat with GenAI
-* `/quiz` – Generate quiz
-* `/quiz/submit` – Submit quiz answers
-* `/sessions` – List learning sessions
-* `/predict` – ML performance prediction
-* `/health` – Health check
-
----
-
-## 🚧 Deployment Status & Limitations
-
-### ❗ Important Note on Deployment
-
-MemoraAI **could not be fully deployed to a free hosting platform** due to **technical and cost limitations**.
-
-### Reasons:
-
-* 🧠 **Heavy GenAI + ML Models**
-
-  * Large model size
-  * High memory (RAM) usage
-
-* 💾 **Persistent Storage Requirement**
-
-  * User chat data
-  * Quiz results
-  * ML training datasets
-
-* 🗄️ **SQLite Database Limitation**
-
-  * Requires persistent disk storage
-  * Most free deployment platforms **do not allow writable persistent storage**
-
-* 🔁 **Continuous ML Training (MLOps)**
-
-  * Automated retraining pipelines
-  * Background jobs not supported on free tiers
-
-* 🚫 **No Free Platform Supports**:
-
-  * Long-running ML processes
-  * Persistent databases
-  * Heavy AI workloads together
-
-### Result
-
-Due to these constraints:
-
-* ❌ No deployment platform stores user data for free
-* ❌ ML training cannot run reliably on free hosting
-* ❌ SQLite data resets on redeployments
-
-👉 Therefore, **MemoraAI is currently designed to run locally or on paid cloud infrastructure**.
-
----
-
-## ▶️ Running Locally
-
+### 1. Clone the repository
 ```bash
-# Backend
-cd backend
-uvicorn main:app --reload
+git clone https://github.com/srishanthreddy456789/MemoraAI-Personalized-Learning.git
+cd MemoraAI-Personalized-Learning
+```
 
-# Frontend
+### 2. Setup Backend
+```bash
+cd backend
+pip install -r requirements.txt
+
+# Create .env file
+echo "GROQ_API_KEY=your_groq_key_here" > .env
+echo "JWT_SECRET_KEY=your_secret_here" >> .env
+echo "ALLOWED_ORIGINS=http://localhost:5173" >> .env
+
+# Run the server
+uvicorn backend.main:app --reload
+```
+Backend will be available at `http://localhost:8000`
+
+### 3. Setup Frontend
+```bash
 cd frontend
+
+# Create .env.local
+echo "VITE_API_BASE_URL=http://localhost:8000" > .env.local
+
+# Install and run
 npm install
 npm run dev
 ```
+Frontend will be available at `http://localhost:5173`
 
-Access Swagger UI:
+---
+
+## 🌍 Deployment
+
+### Frontend — Vercel
+Set this environment variable in Vercel Dashboard → Settings → Environment Variables:
+
+| Variable | Value |
+|----------|-------|
+| `VITE_API_BASE_URL` | `https://memoraai-personalized-learning.onrender.com` |
+
+### Backend — Render
+Set these environment variables in Render Dashboard → Environment:
+
+| Variable | Value |
+|----------|-------|
+| `GROQ_API_KEY` | Your Groq API key (free at [console.groq.com](https://console.groq.com)) |
+| `JWT_SECRET_KEY` | A long random secret string |
+| `ALLOWED_ORIGINS` | `https://memora-ai-personalized-learning.vercel.app` |
+
+**Start Command:**
+```
+uvicorn backend.main:app --host 0.0.0.0 --port $PORT
+```
+
+---
+
+## 📁 Project Structure
 
 ```
-http://127.0.0.1:8000/docs
+MemoraAI-Personalized-Learning/
+├── frontend/                   # React + Vite frontend
+│   ├── src/
+│   │   ├── pages/
+│   │   │   ├── Index.tsx       # Main chat interface
+│   │   │   ├── Login.tsx       # Login page
+│   │   │   └── register.tsx    # Registration page
+│   │   ├── lib/
+│   │   │   └── api.ts          # Centralized API config
+│   │   └── components/         # UI components
+│   ├── .env.example            # Environment template
+│   └── vercel.json             # Vercel configuration
+│
+├── backend/                    # FastAPI backend
+│   ├── api/
+│   │   ├── auth.py             # Login/Register endpoints
+│   │   ├── chat.py             # Chat endpoint
+│   │   ├── sessions.py         # Session management
+│   │   ├── quiz.py             # Quiz generation
+│   │   └── predict.py          # Weakness prediction
+│   ├── db/
+│   │   └── database.py         # SQLite schema + connection
+│   ├── genai/
+│   │   ├── teacher.py          # Groq LLM integration
+│   │   └── prompts.py          # System prompts
+│   ├── ml/
+│   │   └── predictor.py        # ML weakness predictor
+│   ├── utils/
+│   │   └── dependencies.py     # JWT auth dependency
+│   ├── .env.example            # Environment template
+│   └── requirements.txt        # Python dependencies
+│
+├── render.yaml                 # Render deployment config
+└── README.md
 ```
 
 ---
 
-## 🎯 Future Improvements
+## 🔑 Environment Variables
 
-* Deploy using paid cloud services (AWS / GCP / Azure)
-* Replace SQLite with PostgreSQL
-* Add vector database for long-term memory
-* Improve quiz difficulty adaptation
-* Add user analytics dashboard
+### Frontend (`.env.local`)
+```env
+VITE_API_BASE_URL=http://localhost:8000
+```
 
----
-
-## 👨‍💻 Author
-
-**Srishanth Reddy**
-AI / ML Engineer | Full‑Stack Developer
-
----
-
-## 📜 License
-
-This project is for **educational and research purposes**.
+### Backend (`.env`)
+```env
+GROQ_API_KEY=your_groq_api_key
+JWT_SECRET_KEY=your_jwt_secret_key
+ALLOWED_ORIGINS=http://localhost:5173
+```
 
 ---
 
-✨ *MemoraAI focuses on learning what you forget — and helping you remember it better.*
+## 📄 API Endpoints
 
+| Method | Endpoint | Description | Auth |
+|--------|----------|-------------|------|
+| POST | `/register` | Create account | No |
+| POST | `/login` | Get JWT token | No |
+| GET | `/health` | Health check | No |
+| POST | `/chat` | Send message to AI | Yes |
+| GET | `/sessions` | List chat sessions | Yes |
+| DELETE | `/sessions/{id}` | Delete a session | Yes |
+| POST | `/quiz` | Generate quiz | Yes |
+| POST | `/predict` | Predict weakness | Yes |
 
+---
 
+## 🤝 Contributing
 
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
 
+---
 
+## 📝 License
 
+This project is open source and available under the [MIT License](LICENSE).
 
+---
+
+<div align="center">
+
+Built with ❤️ by [srishanthreddy456789](https://github.com/srishanthreddy456789)
+
+⭐ **Star this repo if you found it helpful!**
+
+</div>
