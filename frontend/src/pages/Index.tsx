@@ -42,21 +42,12 @@ const Index = () => {
   const [dark, setDark] = useState(true);
 
   // ---------------- AUTH GUARD ----------------
+  // Simple token presence check — don't ping /health as it can be blocked by ad blockers
   useEffect(() => {
     const token = localStorage.getItem("token");
-
     if (!token) {
       navigate("/login", { replace: true });
-      return;
     }
-
-    // ✅ FIXED: Use API_BASE env variable instead of hardcoded localhost
-    fetch(`${API_BASE}/health`)
-      .catch(() => {
-        localStorage.removeItem("token");
-        navigate("/login", { replace: true });
-      });
-
   }, [navigate]);
 
   // ---------------- FETCH SESSIONS ----------------
@@ -70,15 +61,19 @@ const Index = () => {
           headers: { Authorization: `Bearer ${token}` },
         });
 
-        if (!res.ok) throw new Error("Session fetch failed");
+        if (res.status === 401) throw new Error("401");
+        if (!res.ok) return; // Silently ignore other errors (e.g. server starting up)
 
         const data = await res.json();
         setSessions(data);
 
       } catch (err) {
         console.error("Session error:", err);
-        localStorage.removeItem("token");
-        navigate("/login");
+        // Only logout on 401 (invalid/expired token), not on network errors
+        if (err instanceof Error && err.message === "401") {
+          localStorage.removeItem("token");
+          navigate("/login");
+        }
       }
     };
 
