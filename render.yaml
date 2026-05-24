@@ -1,18 +1,18 @@
 # render.yaml - Render deployment configuration
 # Place this at the ROOT of your repository.
-# Reference: https://render.com/docs/render-yaml-spec
 
 services:
   - type: web
     name: memoraai-backend
     runtime: python
-    rootDir: backend
-    buildCommand: pip install -r requirements.txt
-    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    # rootDir intentionally NOT set - run from repo root so relative imports work
+    buildCommand: pip install -r backend/requirements.txt
+    # Run as "backend.main" (package) so relative imports (from .api.x) resolve correctly
+    startCommand: uvicorn backend.main:app --host 0.0.0.0 --port $PORT
     plan: free
     envVars:
       - key: JWT_SECRET_KEY
-        generateValue: true  # Render auto-generates a secure random value
+        generateValue: true
       - key: ALLOWED_ORIGINS
         value: https://memora-ai-personalized-learning.vercel.app
       - key: PYTHON_VERSION
