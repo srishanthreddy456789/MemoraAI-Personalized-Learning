@@ -9,7 +9,7 @@ _api_key = os.environ.get("GOOGLE_API_KEY", "")
 if _api_key:
     genai.configure(api_key=_api_key)
     _model = genai.GenerativeModel(
-        model_name="gemini-1.5-flash",
+        model_name="gemini-pro",
         system_instruction=SYSTEM_PROMPT
     )
 else:
