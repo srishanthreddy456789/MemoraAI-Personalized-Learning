@@ -8,29 +8,31 @@ _api_key = os.environ.get("GOOGLE_API_KEY", "")
 if _api_key:
     genai.configure(api_key=_api_key)
 
-# Models to try in order of preference
+# Free-tier flash models to try in order of preference
 _MODEL_CANDIDATES = [
+    "gemini-2.0-flash",
+    "gemini-2.0-flash-lite",
     "gemini-1.5-flash",
-    "gemini-1.5-pro",
-    "gemini-pro",
-    "gemini-1.0-pro",
+    "gemini-1.5-flash-8b",
+    "gemini-1.5-flash-latest",
 ]
 
 def _get_model_name() -> str:
-    """Find first available model."""
+    """Find first available FREE flash model — never fall back to paid pro models."""
     if not _api_key:
         return ""
     try:
         available = [m.name for m in genai.list_models()
                      if "generateContent" in m.supported_generation_methods]
+        # Only match flash/free models from our candidates list
         for candidate in _MODEL_CANDIDATES:
             for avail in available:
                 if candidate in avail:
                     return avail
-        # Fallback: return first available
-        return available[0] if available else ""
+        # If no flash model found, use hardcoded fallback (never auto-pick first)
+        return "models/gemini-1.5-flash"
     except Exception:
-        return "gemini-pro"
+        return "models/gemini-1.5-flash"
 
 
 _resolved_model = None
