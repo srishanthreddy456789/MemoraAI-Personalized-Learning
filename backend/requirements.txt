@@ -1,6 +1,4 @@
 # Backend Python dependencies
-# ✅ FIXED: Corrected 'bcr' to 'bcrypt', added python-dotenv and cryptography
-
 fastapi
 uvicorn[standard]
 pydantic
@@ -14,3 +12,5 @@ passlib[bcrypt]
 bcrypt
 python-dotenv
 cryptography
+requests
+google-generativeai
