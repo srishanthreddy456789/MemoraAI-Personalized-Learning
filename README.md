@@ -153,10 +153,10 @@ MemoraAI-Personalized-Learning/
 │   │   ├── pages/
 │   │   │   ├── Index.tsx       # Main chat interface
 │   │   │   ├── Login.tsx       # Login page
-│   │   │   └── register.tsx    # Registration page
+│   │   │   └── Register.tsx    # Registration page
 │   │   ├── lib/
-│   │   │   └── api.ts          # Centralized API config
-│   │   └── components/         # UI components
+│   │   │   └── api.ts          # Centralized API configuration
+│   │   └── components/         # Reusable UI components
 │   ├── .env.example            # Environment template
 │   └── vercel.json             # Vercel configuration
 │
@@ -168,18 +168,29 @@ MemoraAI-Personalized-Learning/
 │   │   ├── quiz.py             # Quiz generation
 │   │   └── predict.py          # Weakness prediction
 │   ├── db/
-│   │   └── database.py         # SQLite schema + connection
+│   │   └── database.py         # SQLite schema & connection
 │   ├── genai/
 │   │   ├── teacher.py          # Groq LLM integration
-│   │   └── prompts.py          # System prompts
+│   │   ├── prompts.py          # System prompts
 │   ├── ml/
 │   │   └── predictor.py        # ML weakness predictor
 │   ├── utils/
-│   │   └── dependencies.py     # JWT auth dependency
+│   │   └── dependencies.py     # JWT authentication
 │   ├── .env.example            # Environment template
 │   └── requirements.txt        # Python dependencies
 │
-├── render.yaml                 # Render deployment config
+├── data_pipelines/             # ML data processing pipeline
+│   └── src/
+│       ├── data_ingestion.py   # Load and validate datasets
+│       ├── data_preprocessing.py # Clean and preprocess data
+│       ├── feature_engineering.py # Generate model features
+│       ├── model_building.py   # Train ML models
+│       ├── model_evaluation.py # Evaluate model performance
+│       ├── inference.py        # Batch prediction pipeline
+│       ├── utils.py            # Pipeline utility functions
+│       └── __init__.py
+│
+├── render.yaml                 # Render deployment configuration
 └── README.md
 ```
 
